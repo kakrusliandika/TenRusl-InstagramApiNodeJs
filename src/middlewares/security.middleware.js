@@ -27,7 +27,7 @@ export function applySecurityMiddleware(app) {
   app.use(cors({
     origin: resolveCorsOrigin,
     credentials: false,
-    methods: ['GET', 'HEAD', 'OPTIONS'],
+    methods: ['GET', 'POST', 'HEAD', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Request-ID']
   }));
 

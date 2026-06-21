@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tenrusl-instagram-api
+  labels:
+    app: tenrusl-instagram-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tenrusl-instagram-api
+  template:
+    metadata:
+      labels:
+        app: tenrusl-instagram-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/kakrusliandika/tenrusl-instagram-api-nodejs:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: APP_MODE
+              value: official
+            - name: SCRAPER_ENABLED
+              value: "false"
+            - name: API_KEY_ENABLED
+              value: "true"
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: tenrusl-instagram-api-secret
+                  key: api-key
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /live
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

@@ -1,14 +1,34 @@
 [build]
-  command = "echo 'No static build required for the official Netlify function adapter.'"
+  command = "echo 'No static build required. Netlify functions serve the API contract.'"
   publish = "public"
   functions = "netlify/functions"
 
 [[redirects]]
-  from = "/api/v1/instagram/:username"
-  to = "/.netlify/functions/instagram/:username"
+  from = "/v1/*"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
 [[redirects]]
-  from = "/api/instagram/:username"
-  to = "/.netlify/functions/instagram/:username"
+  from = "/api/v1/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+
+[[redirects]]
+  from = "/ready"
+  to = "/.netlify/functions/api/ready"
+  status = 200
+
+[[redirects]]
+  from = "/live"
+  to = "/.netlify/functions/api/live"
+  status = 200
+
+[[redirects]]
+  from = "/metrics"
+  to = "/.netlify/functions/api/metrics"
   status = 200

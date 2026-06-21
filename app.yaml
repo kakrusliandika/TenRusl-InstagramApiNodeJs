@@ -1,0 +1,14 @@
+runtime: nodejs22
+service: tenrusl-instagram-api
+entrypoint: node src/server.js
+
+env_variables:
+  NODE_ENV: production
+  APP_MODE: official
+  SCRAPER_ENABLED: "false"
+  API_KEY_ENABLED: "true"
+  CORS_ORIGIN: https://your-domain.example
+
+automatic_scaling:
+  min_instances: 0
+  max_instances: 2

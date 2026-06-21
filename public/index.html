@@ -3,20 +3,29 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TenRusl Instagram API</title>
+    <title>TenRusl Instagram API v3</title>
     <link rel="icon" href="/favicon.svg" />
     <style>
       body { font-family: system-ui, sans-serif; margin: 0; padding: 48px; background: #0b1020; color: #f8fafc; }
-      main { max-width: 780px; margin: auto; }
+      main { max-width: 900px; margin: auto; }
       code { background: #111827; padding: 2px 6px; border-radius: 6px; }
       a { color: #93c5fd; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+      .card { border: 1px solid #1f2937; background: #111827; padding: 16px; border-radius: 14px; }
     </style>
   </head>
   <body>
     <main>
-      <h1>🚀 TenRusl Instagram API</h1>
-      <p>Production-ready API untuk mode resmi Meta API, local Puppeteer, dan scraper Docker.</p>
-      <p>Cek endpoint: <code>/health</code> dan <code>/api/v1/instagram/:username</code>.</p>
+      <h1>🚀 TenRusl Instagram API v3</h1>
+      <p>Fullpower route contract untuk Node.js 24 LTS dengan compatibility Node.js 22.</p>
+      <div class="grid">
+        <div class="card"><strong>Health</strong><br /><code>/health</code></div>
+        <div class="card"><strong>Ready</strong><br /><code>/ready</code></div>
+        <div class="card"><strong>Live</strong><br /><code>/live</code></div>
+        <div class="card"><strong>Metrics</strong><br /><code>/metrics</code></div>
+        <div class="card"><strong>V1 API</strong><br /><code>/v1/accounts</code></div>
+        <div class="card"><strong>Post Detail</strong><br /><code>/v1/posts/:id</code></div>
+      </div>
     </main>
   </body>
 </html>

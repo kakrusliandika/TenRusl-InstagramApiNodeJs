@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: tenrusl-instagram-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_MODE
+        value: official
+      - key: SCRAPER_ENABLED
+        value: false
+      - key: API_KEY_ENABLED
+        value: true
+      - key: API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false

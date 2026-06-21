@@ -1,6 +1,106 @@
-# 🚀 Deployment Guide
+# Deployment Guide — TenRusl Instagram API v3
 
-## 1. VPS Ubuntu + Docker — recommended for scraper production
+Runtime utama: Node.js 24 LTS. Compatibility: Node.js 22.
+
+## Matrix deployment
+
+| Target | File pendukung | Rekomendasi mode |
+|---|---|---|
+| Docker | `Dockerfile`, `docker-compose.yml` | `official` |
+| Cloudflare | `cloudflare/worker/*` | Gateway/proxy |
+| GitHub | `.github/workflows/*` | CI + GHCR |
+| Google Cloud | `app.yaml`, `cloudbuild.yaml`, `deploy/google-cloud/*` | App Engine / Cloud Run |
+| AWS | `deploy/aws/*` | App Runner / ECS Fargate |
+| Heroku | `Procfile` | Node dyno |
+| Render | `render.yaml` | Docker service |
+| Railway | `railway.json` | Docker service |
+| Vercel | `vercel.json`, `src/serverless/vercel.js` | Serverless official/gateway |
+| Netlify | `netlify.toml`, `netlify/functions/api.js` | Lightweight contract adapter |
+| VPS umum | `deploy/vps/install.sh`, nginx/systemd sample | Docker Compose |
+| Kubernetes | `k8s/*` | Container orchestration |
+| Hybrid multi-cloud | Cloudflare + 2 origins | Primary/fallback gateway |
+
+## Docker
+
+```bash
+cp .env.production.example .env
+docker compose up -d --build
+curl http://localhost:3000/health
+```
+
+## Cloudflare Worker
+
+```bash
+cd cloudflare/worker
+cp wrangler.toml.example wrangler.toml
+wrangler deploy
+```
+
+Untuk proxy ke origin Node:
+
+```toml
+[vars]
+ORIGIN_API_URL = "https://api.example.com"
+```
+
+## GitHub Actions
+
+Push ke `main` atau `master` akan menjalankan CI. Push tag `v*` dapat mem-publish Docker image ke GHCR.
+
+## Google Cloud Run
+
+```bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/tenrusl-instagram-api
+gcloud run deploy tenrusl-instagram-api --image gcr.io/PROJECT_ID/tenrusl-instagram-api --port 3000
+```
+
+## AWS ECS Fargate
+
+Gunakan `deploy/aws/ecs-task-definition.example.json` sebagai baseline, push image ke ECR, lalu buat service dengan target group health path `/health`.
+
+## Heroku
+
+```bash
+heroku create tenrusl-instagram-api
+heroku stack:set heroku-24
+heroku config:set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
+git push heroku main
+```
+
+## Render
+
+Import blueprint dari `render.yaml`, isi secret, lalu deploy.
+
+## Railway
+
+```bash
+railway up
+railway variables set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
+```
+
+## Vercel
+
+```bash
+vercel --prod
+```
+
+Set env di dashboard: `NODE_ENV`, `APP_MODE`, `SCRAPER_ENABLED`, `API_KEY_ENABLED`, `API_KEY`, `CORS_ORIGIN`.
+
+## Netlify
+
+```bash
+netlify deploy --prod
+```
+
+Netlify function yang disediakan adalah lightweight contract adapter. Pakai Docker/Kubernetes/VPS untuk full Express stack.
+
+## VPS umum
+
+```bash
+bash deploy/vps/install.sh
+```
+
+Atau manual:
 
 ```bash
 git clone https://github.com/kakrusliandika/TenRusl-InstagramApiNodeJs.git
@@ -8,77 +108,25 @@ cd TenRusl-InstagramApiNodeJs
 cp .env.production.example .env
 nano .env
 docker compose up -d --build
-curl http://127.0.0.1:3000/health
 ```
 
-Gunakan Cloudflare DNS/CDN di depan VPS.
-
-## 2. Vercel — recommended for official mode only
-
-Environment:
-
-```env
-APP_MODE=official
-SCRAPER_ENABLED=false
-META_API_ENABLED=true
-META_ACCESS_TOKEN=...
-META_IG_USER_ID=...
-META_USERNAME=kakrusliandika
-```
-
-Jika ingin menghindari Puppeteer install di serverless, set install command di dashboard:
+## Kubernetes
 
 ```bash
-npm install --omit=optional
+kubectl apply -f k8s/secret.example.yaml
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
 ```
 
-## 3. Netlify — official function adapter
+## Hybrid multi-cloud
 
-Environment:
-
-```env
-META_ACCESS_TOKEN=...
-META_IG_USER_ID=...
-META_USERNAME=kakrusliandika
-META_API_VERSION=v23.0
-MAX_FEED_LIMIT=35
-```
-
-Endpoint:
+Recommended layout:
 
 ```txt
-/api/v1/instagram/kakrusliandika
+Cloudflare Worker
+  ├─ Primary origin: Cloud Run / Render / Railway / Kubernetes
+  └─ Backup origin: VPS Docker / AWS ECS
 ```
 
-## 4. Cloudflare Worker — gateway / official / proxy
-
-```bash
-cd cloudflare/worker
-cp wrangler.toml.example wrangler.toml
-wrangler secret put META_ACCESS_TOKEN
-wrangler secret put META_IG_USER_ID
-wrangler deploy
-```
-
-Untuk proxy ke VPS scraper:
-
-```toml
-[vars]
-APP_MODE = "hybrid"
-SCRAPER_API_URL = "https://api.example.com"
-```
-
-Tambahkan secret:
-
-```bash
-wrangler secret put SCRAPER_API_KEY
-```
-
-## 5. GitHub Actions + GHCR
-
-Workflow sudah tersedia:
-
-- `.github/workflows/ci.yml`
-- `.github/workflows/docker-ghcr.yml`
-
-Push ke branch `main` atau `master`, lalu image Docker akan bisa dipublish ke GitHub Container Registry.
+Gunakan `/health`, `/ready`, `/live`, dan `/metrics` untuk routing health, probe, dan observability.

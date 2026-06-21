@@ -1,11 +1,12 @@
 {
   "name": "tenrusl-instagram-api-nodejs",
-  "version": "2.0.0",
-  "description": "Production-ready Instagram API with official Meta API mode, local Puppeteer mode, and Docker scraper mode.",
+  "version": "3.0.0",
+  "description": "Ultimate production-ready Instagram API route contract for Node.js 24 LTS with Node.js 22 compatibility, Express, health checks, metrics, deployment templates, and safe official-adapter boundaries.",
   "type": "module",
   "main": "src/server.js",
   "engines": {
-    "node": ">=20.18.0"
+    "node": ">=22 <25",
+    "npm": ">=10"
   },
   "scripts": {
     "dev": "node --watch src/server.js",
@@ -14,8 +15,10 @@
     "check": "node scripts/check-syntax.js",
     "test": "node --test",
     "doctor": "node scripts/doctor.js",
-    "docker:build": "docker build -f docker/Dockerfile -t tenrusl-instagram-api:latest .",
-    "docker:run": "docker run --rm --env-file .env -p 3000:3000 tenrusl-instagram-api:latest"
+    "docker:build": "docker build -t tenrusl-instagram-api:latest .",
+    "docker:run": "docker run --rm --env-file .env -p 3000:3000 tenrusl-instagram-api:latest",
+    "healthcheck": "node -e \"fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\"",
+    "docker:build:official": "docker build -f docker/Dockerfile.official -t tenrusl-instagram-api:official ."
   },
   "keywords": [
     "instagram",
@@ -26,7 +29,19 @@
     "docker",
     "cloudflare",
     "vercel",
-    "netlify"
+    "netlify",
+    "nodejs24",
+    "nodejs22",
+    "metrics",
+    "healthcheck",
+    "kubernetes",
+    "aws",
+    "google-cloud",
+    "heroku",
+    "render",
+    "railway",
+    "vps",
+    "multi-cloud"
   ],
   "author": "Andika Rusli",
   "license": "MIT",
