@@ -1,0 +1,15 @@
+name = "tenrusl-instagram-gateway"
+main = "src/index.js"
+compatibility_date = "2026-06-21"
+
+[vars]
+APP_MODE = "official"
+MAX_FEED_LIMIT = "35"
+META_API_VERSION = "v23.0"
+META_USERNAME = "kakrusliandika"
+# SCRAPER_API_URL = "https://api.example.com"
+
+# Add secrets with:
+# wrangler secret put META_ACCESS_TOKEN
+# wrangler secret put META_IG_USER_ID
+# wrangler secret put SCRAPER_API_KEY

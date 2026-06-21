@@ -1,0 +1,14 @@
+[build]
+  command = "echo 'No static build required for the official Netlify function adapter.'"
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/v1/instagram/:username"
+  to = "/.netlify/functions/instagram/:username"
+  status = 200
+
+[[redirects]]
+  from = "/api/instagram/:username"
+  to = "/.netlify/functions/instagram/:username"
+  status = 200
