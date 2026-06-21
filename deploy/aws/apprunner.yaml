@@ -1,19 +1,16 @@
 version: 1.0
-runtime: nodejs22
+runtime: docker
 build:
   commands:
     build:
-      - npm ci --omit=optional
+      - docker build -t tenrusl-instagram-api .
 run:
-  command: node src/server.js
+  runtime-version: latest
+  command: npm start
   network:
     port: 3000
   env:
     - name: NODE_ENV
       value: production
-    - name: APP_MODE
-      value: official
-    - name: SCRAPER_ENABLED
-      value: "false"
-    - name: API_KEY_ENABLED
-      value: "true"
+    - name: IG_PROVIDER
+      value: mock

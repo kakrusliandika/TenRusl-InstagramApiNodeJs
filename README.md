@@ -1,316 +1,165 @@
-# TenRusl Instagram API Node.js v3 — Fullpower UltimateGod Edition
+# 🚀 TenRusl Instagram API Gateway Node.js
 
-![Node.js](https://img.shields.io/badge/Node.js-24%20LTS-22c55e?logo=node.js&logoColor=white)
-![Compatibility](https://img.shields.io/badge/Compatible-Node.js%2022-84cc16?logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-5-111827?logo=express&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-0ea5e9?logo=docker&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/Kubernetes-ready-326ce5?logo=kubernetes&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![Node.js](https://img.shields.io/badge/Node.js-24%20LTS%20%7C%2022-339933) ![Express](https://img.shields.io/badge/Express-5.x-black) ![ESM](https://img.shields.io/badge/Module-ESM-blue) ![Provider](https://img.shields.io/badge/Default%20Provider-mock-success) ![Security](https://img.shields.io/badge/Default-safe%20dry--run-green)
 
-**TenRusl Instagram API Node.js v3** adalah refactor final berbasis Express untuk kontrak endpoint Instagram-style yang lengkap, health/readiness/liveness/metrics, deployment multi-platform, dan struktur yang siap dikembangkan memakai adapter resmi.
+TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk menyatukan kontrak endpoint Instagram berbasis Express, provider adapter, validasi input, observability, Docker, deployment multi-platform, dan dokumentasi operasional.
 
-Implementasi ini sengaja memakai **safe adapter boundary** untuk endpoint yang bersifat aksi tulis seperti follow, unfollow, publish, reply, dan send message. Route tersedia dan respons kontrak aktif, tetapi operasi tulis default berjalan sebagai **dry-run** agar aman untuk development, audit, dan deployment awal. Untuk produksi nyata, hubungkan provider resmi yang sesuai izin akun dan platform.
+> 🛡️ **Compliance warning**  
+> Project ini tidak menyediakan fitur untuk melewati login, proteksi anti-bot, rate-limit, session theft, credential stuffing, atau akses data tanpa izin. Gunakan **Official Instagram Graph API / Meta API** untuk integrasi resmi. Adapter `public` dibatasi untuk data publik yang boleh diakses secara legal dan sesuai ketentuan. Adapter `authorized` hanya untuk data milik sendiri atau izin eksplisit, disabled by default, dan tidak menyimpan password mentah.
 
-## Runtime target
+## ✨ Fitur Utama
 
-| Kebutuhan | Nilai |
-|---|---|
-| Node runtime utama | **Node.js 24 LTS** |
-| Node compatibility | **Node.js 22** |
-| Package manager | npm 10+ |
-| Framework API | Express 5 |
-| Format module | ES Module |
-| Default port | `3000` |
+- 🧩 Provider adapter: `mock`, `official`, `public`, `authorized`.
+- 🔐 Production hardening: Helmet, CORS configurable, API key optional, rate limit, request ID, body limit, sanitization, error handler global.
+- 📊 Observability: `/health`, `/ready`, `/live`, `/metrics` Prometheus-style + JSON.
+- 🧪 Testable tanpa credential Instagram asli memakai `IG_PROVIDER=mock`.
+- ⚙️ ESM, Express.js, Node.js 24 LTS primary, Node.js 22 compatible.
+- 📦 Docker, Docker Compose, Kubernetes, VPS, Cloudflare proxy, GitHub Actions, Google Cloud, AWS, Heroku, Render, Railway, Vercel, Netlify, hybrid multi-cloud.
+- 🧭 Standard response envelope untuk sukses dan error.
 
-## Fitur utama
+## 🧩 Provider Mode
 
-- Semua endpoint yang diminta tersedia di prefix **`/v1`**.
-- Alias kompatibilitas juga tersedia di **`/api/v1`**.
-- Endpoint legacy tetap dipertahankan: `/api/v1/instagram/:username` dan `/api/instagram/:username`.
-- Health check lengkap: `/health`, `/ready`, `/live`, `/metrics`.
-- Metrics Prometheus text dan opsi JSON: `/metrics?format=json`.
-- Request ID otomatis via `X-Request-ID`.
-- Security middleware: Helmet, CORS, body limit, compression.
-- API key optional untuk production: `X-API-Key`.
-- Rate limit public API.
-- Cache LRU untuk endpoint legacy Instagram feed.
-- Safe dry-run untuk operasi tulis.
-- Test route coverage untuk seluruh endpoint target.
-- Deployment template untuk Docker, Cloudflare, GitHub Actions, Google Cloud, AWS, Heroku, Render, Railway, Vercel, Netlify, VPS, Kubernetes, dan hybrid multi-cloud.
+| Provider | Env | Status default | Cocok untuk | Catatan |
+|---|---|---:|---|---|
+| Mock | `IG_PROVIDER=mock` | Aktif | Local dev, demo, CI/CD, preview deploy | Semua endpoint testable, action selalu dry-run |
+| Official | `IG_PROVIDER=official` | Perlu token | Akun Business/Creator resmi | Gunakan `META_ACCESS_TOKEN`, `META_IG_USER_ID`, scope sesuai app review |
+| Public | `IG_PROVIDER=public` | Safe placeholder | Lookup data publik yang diizinkan | Tidak melakukan bypass login/anti-bot/rate-limit |
+| Authorized | `IG_PROVIDER=authorized` | Disabled | Advanced owned/consented data | Butuh `AUTHORIZED_PROVIDER_ENABLED=true`, tidak menyimpan password mentah |
 
-## Struktur project
+## 🧱 Arsitektur
 
 ```txt
-.
-├─ src/
-│  ├─ app.js
-│  ├─ server.js
-│  ├─ config/
-│  │  ├─ constants.js
-│  │  └─ env.js
-│  ├─ controllers/
-│  │  ├─ instagram.controller.js
-│  │  └─ v1.controller.js
-│  ├─ middlewares/
-│  ├─ routes/
-│  │  ├─ health.routes.js
-│  │  ├─ instagram.routes.js
-│  │  └─ v1.routes.js
-│  ├─ services/
-│  │  ├─ instagram-v1.service.js
-│  │  ├─ instagram.service.js
-│  │  ├─ metrics.service.js
-│  │  └─ ...
-│  ├─ serverless/
-│  ├─ tests/
-│  │  ├─ cache.test.js
-│  │  ├─ health.test.js
-│  │  ├─ validator.test.js
-│  │  └─ v1-routes.test.js
-│  ├─ utils/
-│  └─ validators/
-│     ├─ instagram.validator.js
-│     └─ v1.validator.js
-├─ cloudflare/worker/
-├─ deploy/
-│  ├─ aws/
-│  ├─ google-cloud/
-│  ├─ nginx/
-│  ├─ systemd/
-│  └─ vps/
-├─ docker/
-├─ docs/
-├─ k8s/
-├─ netlify/functions/
-├─ public/
-├─ .github/workflows/
-├─ Dockerfile
-├─ Procfile
-├─ app.yaml
-├─ cloudbuild.yaml
-├─ docker-compose.yml
-├─ netlify.toml
-├─ railway.json
-├─ render.yaml
-├─ vercel.json
-├─ package.json
-└─ README.md
+Client -> Express App -> Security Middleware -> Validation -> V1 Routes -> Provider Factory -> Provider Adapter -> Standard Envelope
 ```
 
-## Instalasi lokal
+```mermaid
+flowchart LR
+  C[Client] --> R[Request ID + Metrics]
+  R --> S[Helmet / CORS / Rate Limit / API Key]
+  S --> V[Validation + Sanitization]
+  V --> RT[V1 Route Handler]
+  RT --> PF[Provider Factory]
+  PF --> M[Mock]
+  PF --> O[Official Meta API]
+  PF --> P[Public Safe Adapter]
+  PF --> A[Authorized Disabled-by-default]
+  M --> E[Response Envelope]
+  O --> E
+  P --> E
+  A --> E
+```
+
+```mermaid
+flowchart TD
+  ENV[IG_PROVIDER env] --> F[provider.factory.js]
+  F -->|mock| MOCK[mock.provider.js]
+  F -->|official| OFFICIAL[official.provider.js]
+  F -->|public| PUBLIC[public.provider.js]
+  F -->|authorized| AUTH[authorized.provider.js]
+  OFFICIAL --> META[Meta / Instagram Graph API boundary]
+  PUBLIC --> PUB[Allowed public data boundary]
+  AUTH --> OWN[Owned or explicit-consent data boundary]
+```
+
+```mermaid
+flowchart LR
+  DEV[Local] --> IMG[Container Image]
+  IMG --> DOCKER[Docker Compose]
+  IMG --> K8S[Kubernetes]
+  IMG --> CLOUD[Cloud Run / AWS / Render / Railway]
+  EDGE[Cloudflare / Vercel / Netlify] --> ORIGIN[API Origin]
+  K8S --> METRICS[/metrics]
+  CLOUD --> METRICS
+  DOCKER --> METRICS
+```
+
+```mermaid
+flowchart LR
+  DNS[DNS Traffic Manager] --> CF[Cloudflare Edge]
+  CF --> K8S[Kubernetes Primary]
+  CF --> RUN[Google Cloud Run Secondary]
+  CF --> VPS[VPS Fallback]
+  K8S --> OBS[Central Logs + Metrics]
+  RUN --> OBS
+  VPS --> OBS
+```
+
+## ⚡ Quick Start Local
 
 ```bash
 npm install
 cp .env.example .env
-npm run dev
-```
-
-Cek server:
-
-```bash
-curl http://localhost:3000/health
-curl http://localhost:3000/ready
-curl http://localhost:3000/live
-curl http://localhost:3000/metrics
-```
-
-Jalankan validasi:
-
-```bash
 npm run check
 npm test
 npm run doctor
+npm run dev
 ```
 
-## Environment penting
+Buka:
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/v1/get/profiles/tenrusl
+```
+
+## ⚙️ Setup Environment
+
+Minimal local:
 
 ```env
-APP_MODE=official
-NODE_ENV=production
+NODE_ENV=development
 PORT=3000
-APP_NAME=TenRusl Instagram API
-APP_BASE_URL=https://api.example.com
-LOG_LEVEL=info
-
-CORS_ORIGIN=https://example.com
-API_KEY_ENABLED=true
-API_KEY=replace_with_32_plus_character_random_secret
-
-RATE_LIMIT_WINDOW_MS=60000
-RATE_LIMIT_MAX=60
-
-DEFAULT_FEED_LIMIT=12
-MAX_FEED_LIMIT=35
-CACHE_ENABLED=true
-CACHE_TTL_SECONDS=900
-CACHE_MAX_ITEMS=500
-
-SCRAPER_ENABLED=false
-
-META_API_ENABLED=false
-META_API_VERSION=v23.0
-META_ACCESS_TOKEN=
-META_IG_USER_ID=
-META_USERNAME=
-META_TIMEOUT_MS=15000
+IG_PROVIDER=mock
+CORS_ORIGIN=*
+API_KEY_ENABLED=false
 ```
 
-## Health, readiness, liveness, metrics
-
-| Method | Endpoint | Fungsi |
-|---|---|---|
-| GET | `/health` | Health check ringan untuk uptime service |
-| GET | `/ready` | Readiness check untuk cache, scraper queue, dan konfigurasi official adapter |
-| GET | `/live` | Liveness probe untuk container/Kubernetes |
-| GET | `/metrics` | Metrics format Prometheus text |
-| GET | `/metrics?format=json` | Metrics runtime dalam format JSON |
-| GET | `/health/ready` | Backward-compatible readiness path |
-| GET | `/health/live` | Backward-compatible liveness path |
-| GET | `/health/metrics` | Backward-compatible metrics path |
-
-## Endpoint v1 lengkap
-
-Semua endpoint utama tersedia pada prefix `/v1`. Prefix `/api/v1` juga dipasang sebagai alias agar mudah dipakai pada gateway lama.
-
-| Method | Endpoint | Status implementasi |
-|---|---|---|
-| GET | `/v1/accounts` | Route aktif, list contract |
-| GET | `/v1/accounts/:id` | Route aktif, detail by ID |
-| GET | `/v1/profiles` | Route aktif, list contract |
-| GET | `/v1/profiles/:id` | Route aktif, detail by ID |
-| GET | `/v1/followers/self` | Route aktif, by configured/self username |
-| GET | `/v1/followers/users/:username` | Route aktif, by username |
-| GET | `/v1/following/self` | Route aktif, by configured/self username |
-| GET | `/v1/following/users/:username` | Route aktif, by username |
-| POST | `/v1/actions/follow/from-username` | Route aktif, safe dry-run |
-| POST | `/v1/actions/unfollow/from-username` | Route aktif, safe dry-run |
-| GET | `/v1/photos/users/:username` | Route aktif, by username |
-| GET | `/v1/feeds/users/:username` | Route aktif, by username |
-| GET | `/v1/statuses/users/:username` | Route aktif, by username |
-| GET | `/v1/posts` | Route aktif, list contract |
-| GET | `/v1/posts/:id` | Route aktif, detail post by Post ID |
-| GET | `/v1/posts/by-link?link=<instagram-url>` | Route aktif, detail post by Link |
-| GET | `/v1/posts?link=<instagram-url>` | Alias detail post by Link |
-| GET | `/v1/reels` | Route aktif, list contract |
-| GET | `/v1/media` | Route aktif, list contract |
-| POST | `/v1/publish/media` | Route aktif, safe dry-run |
-| POST | `/v1/publish/reel` | Route aktif, safe dry-run |
-| GET | `/v1/comments` | Route aktif, list contract |
-| POST | `/v1/comments/:id/reply` | Route aktif, safe dry-run |
-| GET | `/v1/mentions` | Route aktif, list contract |
-| GET | `/v1/hashtags/media` | Route aktif, list contract |
-| GET | `/v1/insights` | Route aktif, list contract |
-| GET | `/v1/conversations` | Route aktif, list contract |
-| GET | `/v1/messages` | Route aktif, list contract |
-| POST | `/v1/messages/send` | Route aktif, safe dry-run |
-
-## Endpoint by username
-
-```bash
-curl "http://localhost:3000/v1/followers/users/kakrusliandika?limit=12"
-curl "http://localhost:3000/v1/following/users/kakrusliandika?limit=12"
-curl "http://localhost:3000/v1/photos/users/kakrusliandika?limit=12"
-curl "http://localhost:3000/v1/feeds/users/kakrusliandika?limit=12"
-curl "http://localhost:3000/v1/statuses/users/kakrusliandika?limit=12"
-```
-
-## Get Detail Post by Post ID
-
-```bash
-curl "http://localhost:3000/v1/posts/POST_ID_OR_SHORTCODE"
-```
-
-Contoh respons:
-
-```json
-{
-  "success": true,
-  "version": "v1",
-  "resource": "posts",
-  "operation": "detail-by-post-id",
-  "id": "POST_ID_OR_SHORTCODE",
-  "data": {
-    "id": "POST_ID_OR_SHORTCODE",
-    "shortcode": "POST_ID_OR_SHORTCODE",
-    "status": "adapter-required"
-  }
-}
-```
-
-## Get Detail Post by Link
-
-Dua cara didukung:
-
-```bash
-curl "http://localhost:3000/v1/posts/by-link?link=https%3A%2F%2Fwww.instagram.com%2Fp%2FCODE123%2F"
-curl "http://localhost:3000/v1/posts?link=https%3A%2F%2Fwww.instagram.com%2Freel%2FCODE123%2F"
-```
-
-Link yang valid harus berbentuk:
-
-```txt
-https://www.instagram.com/p/<shortcode>/
-https://www.instagram.com/reel/<shortcode>/
-https://www.instagram.com/tv/<shortcode>/
-```
-
-## POST action examples
-
-Semua action POST aktif sebagai dry-run default.
-
-```bash
-curl -X POST http://localhost:3000/v1/actions/follow/from-username \
-  -H "Content-Type: application/json" \
-  -d '{"targetUsername":"kakrusliandika"}'
-```
-
-```bash
-curl -X POST http://localhost:3000/v1/messages/send \
-  -H "Content-Type: application/json" \
-  -d '{"recipientUsername":"kakrusliandika","message":"Halo"}'
-```
-
-```bash
-curl -X POST http://localhost:3000/v1/publish/media \
-  -H "Content-Type: application/json" \
-  -d '{"mediaUrl":"https://example.com/photo.jpg","caption":"Demo"}'
-```
-
-## API key production
-
-Aktifkan di `.env`:
+Official provider:
 
 ```env
-API_KEY_ENABLED=true
-API_KEY=replace_with_32_plus_character_random_secret
+IG_PROVIDER=official
+META_ACCESS_TOKEN=your_meta_access_token
+META_IG_USER_ID=your_instagram_business_or_creator_user_id
+META_API_VERSION=v23.0
 ```
 
-Kirim header:
+Public provider safe mode:
+
+```env
+IG_PROVIDER=public
+PUBLIC_DATA_ENABLED=false
+PUBLIC_DATA_UPSTREAM_URL=
+```
+
+Authorized provider advanced mode:
+
+```env
+IG_PROVIDER=authorized
+AUTHORIZED_PROVIDER_ENABLED=false
+AUTHORIZED_SESSION_TOKEN=
+```
+
+## 🧪 Run Development, Production, Test
 
 ```bash
-curl http://localhost:3000/v1/accounts \
-  -H "X-API-Key: replace_with_32_plus_character_random_secret"
+npm run dev        # node --watch src/server.js
+npm start          # production-style start
+npm run check      # syntax check entrypoint
+npm test           # node:test suite
+npm run doctor     # runtime and structure readiness
+npm run lint       # basic secret/unsafe-pattern scan
 ```
 
-## Response envelope
+## 🧾 Standard Response
 
 Sukses:
 
 ```json
 {
   "success": true,
-  "version": "v1",
-  "resource": "accounts",
-  "operation": "list",
-  "provider": {
-    "mode": "official",
-    "adapter": "safe-placeholder",
-    "officialConfigured": false,
-    "writeOperations": "dry-run"
-  },
-  "count": 1,
-  "data": [],
-  "generatedAt": "2026-06-21T00:00:00.000Z"
+  "data": {},
+  "meta": {},
+  "error": null
 }
 ```
 
@@ -319,311 +168,324 @@ Error:
 ```json
 {
   "success": false,
+  "data": null,
+  "meta": {},
   "error": {
-    "code": "BAD_REQUEST",
-    "message": "Parameter query tidak valid."
+    "code": "ERROR_CODE",
+    "message": "Human readable message",
+    "details": {}
   }
 }
 ```
 
-## Legacy Instagram feed endpoint
+## 📚 Endpoint Table
 
-Endpoint lama tetap ada:
+| Kategori | Method | Endpoint | Catatan |
+|---|---:|---|---|
+| System | GET | `/health` | status service |
+| System | GET | `/ready` | readiness + provider warnings |
+| System | GET | `/live` | liveness |
+| System | GET | `/metrics` | Prometheus text, `?format=json` untuk JSON |
+| Accounts | GET | `/v1/get/accounts/:identifier` | ID atau username |
+| Profiles | GET | `/v1/get/profiles/:identifier` | ID atau username |
+| Profiles | GET | `/v1/get/profiles/by-link?link=` | link profile Instagram |
+| Followers | GET | `/v1/get/followers/:identifier` | `limit`, `page`, `cursor`, `all` |
+| Following | GET | `/v1/get/following/:identifier` | `limit`, `page`, `cursor`, `all` |
+| Actions | POST | `/v1/actions/follow/:identifier` | dry-run default |
+| Actions | POST | `/v1/actions/unfollow/:identifier` | dry-run default |
+| Photos | GET | `/v1/get/photos/users/:identifier` | user photos |
+| Photos | GET | `/v1/get/photos/by-link?link=` | by post/reel/story link |
+| Feeds | GET | `/v1/get/feeds/users/:identifier` | user feeds |
+| Feeds | GET | `/v1/get/feeds/by-link?link=` | by link |
+| Statuses | GET | `/v1/get/statuses/users/:identifier` | user statuses/stories contract |
+| Statuses | GET | `/v1/get/statuses/by-link?link=` | supports `/stories/...` |
+| Posts | GET | `/v1/get/posts/users/:identifier` | user posts |
+| Posts | GET | `/v1/get/posts/:id` | detail by Post ID |
+| Posts | GET | `/v1/get/posts/by-link?link=` | detail by link |
+| Reels | GET | `/v1/get/reels/users/:identifier` | user reels |
+| Reels | GET | `/v1/get/reels/by-link?link=` | by link |
+| Media | GET | `/v1/get/media/users/:identifier` | all/limit media |
+| Media | GET | `/v1/get/media/by-link?link=` | by link |
+| Publish | POST | `/v1/publish/media` | `mediaUrl`, `mediaType`, `caption`, dry-run |
+| Publish | POST | `/v1/publish/reels` | dry-run |
+| Publish | POST | `/v1/publish/photos` | dry-run |
+| Publish | POST | `/v1/publish/feeds` | dry-run |
+| Publish | POST | `/v1/publish/statuses` | dry-run |
+| Comments | GET | `/v1/comments?link=` | comments by link optional |
+| Comments | POST | `/v1/comments/:id/reply` | dry-run |
+| Comments | POST | `/v1/comments/reply` | body `id` or `link`, dry-run |
+| Discovery | GET | `/v1/mentions` | mentions contract |
+| Discovery | GET | `/v1/hashtags/media?hashtag=` | hashtag media |
+| Insights | GET | `/v1/insights` | official provider recommended |
+| Messaging | GET | `/v1/conversations` | conversations |
+| Messaging | GET | `/v1/messages` | all/limit messages |
+| Messaging | GET | `/v1/messages/:id` | thread messages |
+| Messaging | POST | `/v1/messages/:id/send` | dry-run |
+
+## 🧪 Curl Examples
+
+System:
 
 ```bash
-curl "http://localhost:3000/api/v1/instagram/kakrusliandika?limit=12"
-curl "http://localhost:3000/api/instagram/kakrusliandika?limit=12"
-```
-
-Mode legacy:
-
-| Mode | Keterangan |
-|---|---|
-| `official` | Menggunakan konfigurasi Meta API untuk akun yang dikonfigurasi |
-| `scraper` | Optional controlled/internal Puppeteer mode |
-| `hybrid` | Official-first, fallback optional |
-
-Untuk production jangka panjang, gunakan official adapter dan izin yang sesuai.
-
-## Docker
-
-Build:
-
-```bash
-docker build -t tenrusl-instagram-api:latest .
-```
-
-Run:
-
-```bash
-docker run --rm --env-file .env -p 3000:3000 tenrusl-instagram-api:latest
-```
-
-Docker Compose:
-
-```bash
-docker compose up -d --build
 curl http://localhost:3000/health
+curl http://localhost:3000/ready
+curl http://localhost:3000/live
+curl http://localhost:3000/metrics
 ```
 
-Image default memakai Node.js 24 dan tidak menginstall optional Puppeteer. Untuk mode internal yang membutuhkan Puppeteer, gunakan:
+Accounts and profiles:
 
 ```bash
-docker build -f docker/Dockerfile.scraper -t tenrusl-instagram-api:scraper .
+curl http://localhost:3000/v1/get/accounts/tenrusl
+curl http://localhost:3000/v1/get/accounts/123456
+curl http://localhost:3000/v1/get/profiles/tenrusl
+curl "http://localhost:3000/v1/get/profiles/by-link?link=https://www.instagram.com/tenrusl/"
 ```
 
-## GitHub Actions
-
-Workflow tersedia:
-
-```txt
-.github/workflows/ci.yml
-.github/workflows/docker-ghcr.yml
-```
-
-CI menjalankan Node.js 22 dan 24, syntax check, dan unit test. Docker workflow publish image ke GitHub Container Registry ketika push ke branch utama atau tag `v*`.
-
-## Vercel
-
-File tersedia: `vercel.json` dan `src/serverless/vercel.js`.
-
-Environment yang disarankan:
-
-```env
-NODE_ENV=production
-APP_MODE=official
-SCRAPER_ENABLED=false
-API_KEY_ENABLED=true
-API_KEY=...
-CORS_ORIGIN=https://your-domain.example
-```
-
-Deploy:
+Followers and following:
 
 ```bash
-vercel --prod
+curl "http://localhost:3000/v1/get/followers/tenrusl?limit=25"
+curl "http://localhost:3000/v1/get/following/123456?limit=25&cursor=next"
 ```
 
-## Netlify
-
-File tersedia: `netlify.toml` dan `netlify/functions/api.js`.
-
-Netlify adapter bersifat lightweight contract adapter. Untuk full Express middleware, gunakan Docker/VPS/Render/Railway/Kubernetes.
-
-Deploy:
+Actions:
 
 ```bash
-netlify deploy --prod
+curl -X POST http://localhost:3000/v1/actions/follow/tenrusl \
+  -H "content-type: application/json" \
+  -d '{"dryRun":true}'
+
+curl -X POST http://localhost:3000/v1/actions/unfollow/123456 \
+  -H "content-type: application/json" \
+  -d '{"dryRun":true}'
 ```
 
-## Cloudflare Worker
-
-File tersedia:
-
-```txt
-cloudflare/worker/src/index.js
-cloudflare/worker/wrangler.toml.example
-```
-
-Deploy:
+User content and media:
 
 ```bash
-cd cloudflare/worker
-cp wrangler.toml.example wrangler.toml
-wrangler deploy
+curl "http://localhost:3000/v1/get/photos/users/tenrusl?limit=10"
+curl "http://localhost:3000/v1/get/feeds/users/tenrusl?all=true&limit=5"
+curl "http://localhost:3000/v1/get/statuses/by-link?link=https://www.instagram.com/stories/tenrusl/123456/"
+curl "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"
+curl http://localhost:3000/v1/get/posts/post_123
+curl "http://localhost:3000/v1/get/reels/users/tenrusl?limit=5"
+curl "http://localhost:3000/v1/get/media/users/123456?limit=5"
 ```
 
-Untuk menjadikan Worker sebagai gateway ke origin Node full service:
-
-```toml
-[vars]
-ORIGIN_API_URL = "https://api.example.com"
-```
-
-Tambahkan secret origin bila API key aktif:
+Publishing:
 
 ```bash
-wrangler secret put ORIGIN_API_KEY
+curl -X POST http://localhost:3000/v1/publish/media \
+  -H "content-type: application/json" \
+  -d '{"mediaUrl":"https://example.com/image.jpg","mediaType":"IMAGE","caption":"Dry run","dryRun":true}'
 ```
 
-## Google Cloud
-
-Pilihan 1 — App Engine:
+Comments:
 
 ```bash
-gcloud app deploy app.yaml
+curl "http://localhost:3000/v1/comments?link=https://www.instagram.com/p/ABC123def45/"
+curl -X POST http://localhost:3000/v1/comments/comment_123/reply \
+  -H "content-type: application/json" \
+  -d '{"text":"Thanks!","dryRun":true}'
 ```
 
-Pilihan 2 — Cloud Run dengan Docker:
+Discovery, insights, messages:
 
 ```bash
-gcloud builds submit --tag gcr.io/PROJECT_ID/tenrusl-instagram-api
-gcloud run deploy tenrusl-instagram-api \
-  --image gcr.io/PROJECT_ID/tenrusl-instagram-api \
-  --platform managed \
-  --region asia-southeast2 \
-  --allow-unauthenticated \
-  --port 3000
+curl http://localhost:3000/v1/mentions
+curl "http://localhost:3000/v1/hashtags/media?hashtag=tenrusl"
+curl http://localhost:3000/v1/insights
+curl http://localhost:3000/v1/conversations
+curl "http://localhost:3000/v1/messages?limit=20"
+curl http://localhost:3000/v1/messages/thread_123
+curl -X POST http://localhost:3000/v1/messages/thread_123/send \
+  -H "content-type: application/json" \
+  -d '{"username":"tenrusl","text":"Hello","dryRun":true}'
 ```
 
-Gunakan environment dari `deploy/google-cloud/cloud-run.env.example`.
+## 🧭 Pagination
 
-## AWS
+Endpoint collection menerima:
 
-Pilihan ringan: AWS App Runner memakai `deploy/aws/apprunner.yaml`.
+- `limit`: jumlah item, default `25`, maksimum sesuai `MAX_LIMIT`.
+- `page`: halaman numerik untuk adapter yang mendukung page-based pagination.
+- `cursor`: cursor untuk adapter yang mendukung cursor pagination.
+- `all`: boolean. Dalam mock mode tetap dibatasi agar aman untuk test.
 
-Pilihan container production: ECR + ECS Fargate memakai `deploy/aws/ecs-task-definition.example.json`.
+## 🛡️ Dry-run Mode
 
-Alur umum:
+Semua action endpoint seperti follow, unfollow, publish, reply, dan send message default `dryRun: true`. Bahkan jika body mengirim `dryRun:false`, provider mock tetap tidak mengubah state Instagram. Live write operation harus diimplementasikan sendiri melalui adapter resmi yang sudah direview dan diberi izin eksplisit.
+
+## 📊 Metrics
+
+`GET /metrics` mengembalikan text Prometheus-style:
+
+- `tenrusl_up`
+- `tenrusl_uptime_seconds`
+- `tenrusl_requests_total`
+- `tenrusl_memory_rss_bytes`
+- `tenrusl_node_info`
+- `tenrusl_provider_ready`
+
+Gunakan `GET /metrics?format=json` untuk output JSON.
+
+## ☁️ Deployment Tutorial Ringkas
+
+### Local
+
+Cocok untuk development.
 
 ```bash
-aws ecr create-repository --repository-name tenrusl-instagram-api
-docker build -t tenrusl-instagram-api .
-docker tag tenrusl-instagram-api:latest <account-id>.dkr.ecr.<region>.amazonaws.com/tenrusl-instagram-api:latest
-docker push <account-id>.dkr.ecr.<region>.amazonaws.com/tenrusl-instagram-api:latest
+npm install
+npm run dev
 ```
 
-## Heroku
+Health check: `http://localhost:3000/health`.
 
-File tersedia: `Procfile`.
+### Docker
 
 ```bash
-heroku create tenrusl-instagram-api
-heroku stack:set heroku-24
-heroku config:set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
-heroku git:remote -a tenrusl-instagram-api
-git push heroku main
+docker build -t tenrusl-instagram-api:production .
+docker run --env-file .env -p 3000:3000 tenrusl-instagram-api:production
 ```
 
-## Render
-
-File tersedia: `render.yaml`.
-
-Langkah:
-
-1. Push repo ke GitHub.
-2. Import Blueprint di Render.
-3. Isi secret `API_KEY` dan `CORS_ORIGIN`.
-4. Deploy.
-
-Health check path: `/health`.
-
-## Railway
-
-File tersedia: `railway.json`.
+### Docker Compose
 
 ```bash
-railway login
-railway init
-railway up
-railway variables set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
+docker compose up --build
 ```
 
-Health check path: `/health`.
+### Cloudflare
 
-## VPS umum
+Gunakan Worker sebagai edge proxy ke origin container. File: `deploy/cloudflare/worker.js`.
 
-Dengan Docker Compose:
+### GitHub Actions
+
+Gunakan workflow di `deploy/github/ci.yml`. Copy ke `.github/workflows/ci.yml`.
+
+### Google Cloud
+
+Gunakan Cloud Run dengan container image dan env `NODE_ENV=production`, `IG_PROVIDER=mock|official`. File: `deploy/google-cloud/cloud-run.yaml`.
+
+### AWS
+
+Gunakan App Runner atau ECS. File: `deploy/aws/apprunner.yaml`.
+
+### Heroku
+
+Gunakan `Procfile`:
 
 ```bash
-git clone https://github.com/kakrusliandika/TenRusl-InstagramApiNodeJs.git
-cd TenRusl-InstagramApiNodeJs
-cp .env.production.example .env
-nano .env
-docker compose up -d --build
-curl http://127.0.0.1:3000/health
+heroku config:set NODE_ENV=production IG_PROVIDER=mock
 ```
 
-Script helper:
+### Render
+
+Gunakan `render.yaml`. Health check path: `/health`.
+
+### Railway
+
+Gunakan `railway.json`. Start command: `npm start`.
+
+### Vercel / Netlify
+
+Cocok untuk serverless preview. Untuk traffic produksi stabil, container lebih disarankan. File: `deploy/vercel/vercel.json`, `deploy/netlify/netlify.toml`.
+
+### VPS
+
+Gunakan reverse proxy Nginx dan systemd. File: `deploy/vps/nginx.conf`, `deploy/vps/systemd.service`.
+
+### Kubernetes
 
 ```bash
-bash deploy/vps/install.sh
+kubectl apply -f deploy/kubernetes/
 ```
 
-Nginx dan systemd sample tetap tersedia di:
+Readiness: `/ready`, liveness: `/live`.
 
-```txt
-deploy/nginx/tenrusl-instagram-api.conf
-deploy/systemd/tenrusl-instagram-api.service
-```
+### Hybrid Multi-Cloud
 
-## Kubernetes
+Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge melakukan failover berdasarkan health check.
 
-File tersedia:
+## 🔐 Security Notes
 
-```txt
-k8s/deployment.yaml
-k8s/service.yaml
-k8s/ingress.yaml
-k8s/secret.example.yaml
-```
+- Jangan expose `META_ACCESS_TOKEN`, `AUTHORIZED_SESSION_TOKEN`, atau API key.
+- Batasi `CORS_ORIGIN` di production.
+- Aktifkan `API_KEY_ENABLED=true` atau proteksi gateway upstream.
+- Simpan secret di secret manager platform.
+- Pantau `/metrics` dan logs JSON.
+- Jangan menambahkan bypass login, credential stuffing, anti-bot evasion, scraping agresif, atau penyimpanan password mentah.
 
-Deploy:
+## 🧯 Troubleshooting
 
-```bash
-kubectl apply -f k8s/secret.example.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
-kubectl rollout status deployment/tenrusl-instagram-api
-```
-
-Probe:
-
-| Probe | Path |
+| Masalah | Solusi |
 |---|---|
-| readinessProbe | `/ready` |
-| livenessProbe | `/live` |
+| `/ready` degraded | Periksa `IG_PROVIDER` dan env provider terkait |
+| 400 username invalid | Username hanya huruf, angka, titik, underscore; tanpa titik ganda/trailing |
+| 400 link invalid | Gunakan link Instagram `p`, `reel`, `tv`, `stories`, atau profile |
+| 429 rate limit | Naikkan `RATE_LIMIT_MAX` atau tambah gateway-level quota |
+| Official provider not configured | Isi `META_ACCESS_TOKEN` dan `META_IG_USER_ID` |
+| Authorized disabled | Set `AUTHORIZED_PROVIDER_ENABLED=true` hanya untuk data berizin |
 
-## Hybrid multi-cloud pattern
-
-Rekomendasi arsitektur:
+## 📁 Folder Structure
 
 ```txt
-Client
-  ↓
-Cloudflare Worker / CDN Gateway
-  ↓
-Primary API: Google Cloud Run / Render / Railway / Kubernetes
-  ↓
-Fallback API: VPS Docker / AWS ECS
-  ↓
-Observability: /metrics + platform logs
+.
+├── src
+│   ├── app.js
+│   ├── server.js
+│   ├── config
+│   ├── routes
+│   ├── modules
+│   ├── providers/instagram
+│   ├── middlewares
+│   ├── schemas
+│   ├── utils
+│   └── tests
+├── docs
+├── deploy
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── package.json
+├── README.md
+├── SECURITY.md
+├── CONTRIBUTING.md
+└── LICENSE
 ```
 
-Strategi:
+## 🧬 Roadmap
 
-1. Pasang DNS di Cloudflare.
-2. Cloudflare Worker menerima request `/v1/*`.
-3. Worker proxy ke origin utama melalui `ORIGIN_API_URL`.
-4. Jika ingin failover manual, ubah `ORIGIN_API_URL` ke origin cadangan.
-5. Container platform memakai `/health`, `/ready`, `/live` untuk probe.
-6. Metrics di-scrape dari `/metrics` oleh Prometheus-compatible collector.
+- Official Meta Graph API client untuk endpoint yang didukung dan sudah mendapat scope.
+- Contract test OpenAPI.
+- Adapter cache dan queue untuk job asynchronous yang aman.
+- Distributed rate limit dengan Redis.
+- Dashboard metrics.
+- Secret manager integration examples.
 
-## Audit refactor summary
+## ❓ FAQ
 
-| Area | Sebelum | Sesudah |
-|---|---|---|
-| Health | `/health`, `/health/ready` | `/health`, `/ready`, `/live`, `/metrics`, plus `/health/*` aliases |
-| API prefix | `/api/v1/instagram` | `/v1/*`, `/api/v1/*`, legacy tetap ada |
-| Endpoint coverage | Feed legacy | Semua endpoint target tersedia |
-| POST support | CORS hanya GET | CORS GET + POST |
-| Metrics | Belum ada endpoint utama | Prometheus + JSON snapshot |
-| Runtime | Node >=20 | Node 24 LTS utama, Node 22 kompatibel |
-| Deploy | Docker/Vercel/Netlify/Cloudflare dasar | Docker, Cloudflare, GitHub, Google Cloud, AWS, Heroku, Render, Railway, Vercel, Netlify, VPS, Kubernetes, hybrid |
-| Safety | Scraper legacy ada | V1 action memakai safe dry-run dan adapter boundary |
+**Apakah endpoint bisa dites tanpa token Instagram?**  
+Bisa. Gunakan `IG_PROVIDER=mock`.
 
-## Checklist final sebelum deploy publik
+**Apakah action follow/unfollow benar-benar dieksekusi?**  
+Tidak secara default. Semua action dry-run untuk mencegah automation berisiko.
 
-- Ganti `API_KEY` dengan secret panjang.
-- Set `API_KEY_ENABLED=true` untuk production.
-- Batasi `CORS_ORIGIN` ke domain sendiri.
-- Gunakan `APP_MODE=official` untuk public production.
-- Biarkan `SCRAPER_ENABLED=false` pada serverless/public hosting.
-- Simpan token provider di secret manager platform, bukan di Git.
-- Jalankan `npm run check`, `npm test`, dan `npm run doctor`.
-- Cek `/health`, `/ready`, `/live`, `/metrics` setelah deploy.
+**Apakah public adapter melakukan scraping agresif?**  
+Tidak. Adapter public hanya boundary aman untuk integrasi data publik yang diizinkan.
 
-## License
+**Apakah authorized adapter menyimpan password?**  
+Tidak. Gunakan token/session yang dikelola secara aman oleh user dan secret manager.
 
-MIT — lihat `LICENSE`.
+## 🤝 Contribution Guide
+
+1. Fork repository.
+2. Buat branch fitur.
+3. Jalankan `npm run check`, `npm test`, `npm run doctor`, `npm run lint`.
+4. Tambahkan test untuk endpoint/provider baru.
+5. Jelaskan risiko compliance di pull request.
+
+## 📄 License
+
+MIT. Lihat `LICENSE`.

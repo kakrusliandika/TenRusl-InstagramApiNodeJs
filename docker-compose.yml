@@ -1,20 +1,16 @@
 services:
-  tenrusl-instagram-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: tenrusl-instagram-api
-    restart: unless-stopped
+  instagram-api:
+    build: .
+    image: tenrusl-instagram-api:production
     env_file:
-      - .env
+      - .env.example
     environment:
       NODE_ENV: production
-      PORT: 3000
+      IG_PROVIDER: mock
     ports:
       - "3000:3000"
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
-      timeout: 10s
+      timeout: 3s
       retries: 3
-      start_period: 30s

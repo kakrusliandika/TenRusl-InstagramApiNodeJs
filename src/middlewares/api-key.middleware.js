@@ -1,28 +1,13 @@
 import { env } from '../config/env.js';
-import { ERROR_CODES } from '../config/constants.js';
-import { AppError } from '../utils/errors.js';
-import { sha256 } from '../utils/hash.js';
-
-function safeEqual(left, right) {
-  if (!left || !right) return false;
-  return sha256(left) === sha256(right);
-}
+import { AppError, ERROR_CODES } from '../utils/errors.js';
 
 export function apiKeyMiddleware(req, _res, next) {
-  if (!env.apiKeyEnabled) {
-    next();
-    return;
-  }
-
-  const provided = req.get('x-api-key') || '';
-
-  if (!safeEqual(provided, env.apiKey)) {
-    next(new AppError('API key tidak valid atau belum dikirim.', {
-      statusCode: 401,
-      code: ERROR_CODES.UNAUTHORIZED
-    }));
-    return;
-  }
-
-  next();
+  if (['/health', '/ready', '/live', '/metrics'].includes(req.path)) return next();
+  if (!env.apiKeyEnabled) return next();
+  const provided = req.get('x-api-key') || req.get('authorization')?.replace(/^Bearer\s+/i, '');
+  if (provided && provided === env.apiKey) return next();
+  return next(new AppError('A valid API key is required.', {
+    statusCode: 401,
+    code: ERROR_CODES.UNAUTHORIZED
+  }));
 }

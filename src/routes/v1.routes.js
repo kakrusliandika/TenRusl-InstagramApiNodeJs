@@ -1,54 +1,73 @@
 import { Router } from 'express';
-import { apiKeyMiddleware } from '../middlewares/api-key.middleware.js';
-import { publicApiLimiter } from '../middlewares/rate-limit.middleware.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import {
+  accountController,
   actionController,
-  detailByIdController,
-  listResourceController,
-  postByIdController,
-  postByLinkController,
-  selfCollectionController,
-  usernameCollectionController
-} from '../controllers/v1.controller.js';
+  commentsController,
+  conversationsController,
+  hashtagMediaController,
+  insightsController,
+  linkCollectionController,
+  mentionsController,
+  messageThreadController,
+  messagesController,
+  postDetailController,
+  profileByLinkController,
+  profileController,
+  publishController,
+  relationController,
+  replyCommentController,
+  sendMessageController,
+  userCollectionController
+} from '../modules/gateway.controller.js';
 
 export const v1Router = Router();
 
-v1Router.use(publicApiLimiter, apiKeyMiddleware);
+// Contract-compatible routes requested by the production audit brief.
+v1Router.get('/get/accounts/:identifier', asyncHandler(accountController()));
+v1Router.get('/get/profiles/by-link', asyncHandler(profileByLinkController()));
+v1Router.get('/get/profiles/:identifier', asyncHandler(profileController()));
 
-v1Router.get('/accounts', asyncHandler(listResourceController('accounts')));
-v1Router.get('/accounts/:id', asyncHandler(detailByIdController('accounts')));
+v1Router.get('/get/followers/:identifier', asyncHandler(relationController('followers')));
+v1Router.get('/get/following/:identifier', asyncHandler(relationController('following')));
 
-v1Router.get('/profiles', asyncHandler(listResourceController('profiles')));
-v1Router.get('/profiles/:id', asyncHandler(detailByIdController('profiles')));
+v1Router.post('/actions/follow/:identifier', asyncHandler(actionController('follow')));
+v1Router.post('/actions/unfollow/:identifier', asyncHandler(actionController('unfollow')));
 
-v1Router.get('/followers/self', asyncHandler(selfCollectionController('followers')));
-v1Router.get('/followers/users/:username', asyncHandler(usernameCollectionController('followers')));
-v1Router.get('/following/self', asyncHandler(selfCollectionController('following')));
-v1Router.get('/following/users/:username', asyncHandler(usernameCollectionController('following')));
+for (const resource of ['photos', 'feeds', 'statuses']) {
+  v1Router.get(`/get/${resource}/by-link`, asyncHandler(linkCollectionController(resource)));
+  v1Router.get(`/get/${resource}/users/:identifier`, asyncHandler(userCollectionController(resource)));
+}
 
-v1Router.post('/actions/follow/from-username', asyncHandler(actionController('follow-from-username')));
-v1Router.post('/actions/unfollow/from-username', asyncHandler(actionController('unfollow-from-username')));
+for (const resource of ['posts', 'reels', 'media']) {
+  v1Router.get(`/get/${resource}/by-link`, asyncHandler(linkCollectionController(resource)));
+  v1Router.get(`/get/${resource}/users/:identifier`, asyncHandler(userCollectionController(resource)));
+}
 
-v1Router.get('/photos/users/:username', asyncHandler(usernameCollectionController('photos')));
-v1Router.get('/feeds/users/:username', asyncHandler(usernameCollectionController('feeds')));
-v1Router.get('/statuses/users/:username', asyncHandler(usernameCollectionController('statuses')));
+v1Router.get('/get/posts/:id', asyncHandler(postDetailController()));
 
-v1Router.get('/posts/by-link', asyncHandler(postByLinkController));
-v1Router.get('/posts', asyncHandler(listResourceController('posts')));
-v1Router.get('/posts/:id', asyncHandler(postByIdController));
+for (const resource of ['media', 'reels', 'photos', 'feeds', 'statuses']) {
+  v1Router.post(`/publish/${resource}`, asyncHandler(publishController(resource)));
+}
 
-v1Router.get('/reels', asyncHandler(listResourceController('reels')));
-v1Router.get('/media', asyncHandler(listResourceController('media')));
-v1Router.post('/publish/media', asyncHandler(actionController('publish-media')));
-v1Router.post('/publish/reel', asyncHandler(actionController('publish-reel')));
+v1Router.get('/comments', asyncHandler(commentsController()));
+v1Router.post('/comments/reply', asyncHandler(replyCommentController({ routeId: false })));
+v1Router.post('/comments/:id/reply', asyncHandler(replyCommentController({ routeId: true })));
 
-v1Router.get('/comments', asyncHandler(listResourceController('comments')));
-v1Router.post('/comments/:id/reply', asyncHandler(actionController('reply-comment')));
+v1Router.get('/mentions', asyncHandler(mentionsController()));
+v1Router.get('/hashtags/media', asyncHandler(hashtagMediaController()));
+v1Router.get('/insights', asyncHandler(insightsController()));
 
-v1Router.get('/mentions', asyncHandler(listResourceController('mentions')));
-v1Router.get('/hashtags/media', asyncHandler(listResourceController('hashtag-media')));
-v1Router.get('/insights', asyncHandler(listResourceController('insights')));
-v1Router.get('/conversations', asyncHandler(listResourceController('conversations')));
-v1Router.get('/messages', asyncHandler(listResourceController('messages')));
-v1Router.post('/messages/send', asyncHandler(actionController('send-message')));
+v1Router.get('/conversations', asyncHandler(conversationsController()));
+v1Router.get('/messages', asyncHandler(messagesController()));
+v1Router.get('/messages/:id', asyncHandler(messageThreadController()));
+v1Router.post('/messages/:id/send', asyncHandler(sendMessageController()));
+
+// Compatibility aliases for the earlier project route style. They are intentionally safe and map to the same provider boundary.
+v1Router.get('/accounts/:identifier', asyncHandler(accountController()));
+v1Router.get('/profiles/by-link', asyncHandler(profileByLinkController()));
+v1Router.get('/profiles/:identifier', asyncHandler(profileController()));
+v1Router.get('/followers/:identifier', asyncHandler(relationController('followers')));
+v1Router.get('/following/:identifier', asyncHandler(relationController('following')));
+v1Router.get('/posts/by-link', asyncHandler(linkCollectionController('posts')));
+v1Router.get('/posts/:id', asyncHandler(postDetailController()));

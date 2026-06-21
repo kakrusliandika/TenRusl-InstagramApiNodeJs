@@ -1,132 +1,94 @@
-# Deployment Guide — TenRusl Instagram API v3
+# Deployment Guide
 
-Runtime utama: Node.js 24 LTS. Compatibility: Node.js 22.
+## Local
 
-## Matrix deployment
+Cocok untuk development dan audit cepat.
 
-| Target | File pendukung | Rekomendasi mode |
-|---|---|---|
-| Docker | `Dockerfile`, `docker-compose.yml` | `official` |
-| Cloudflare | `cloudflare/worker/*` | Gateway/proxy |
-| GitHub | `.github/workflows/*` | CI + GHCR |
-| Google Cloud | `app.yaml`, `cloudbuild.yaml`, `deploy/google-cloud/*` | App Engine / Cloud Run |
-| AWS | `deploy/aws/*` | App Runner / ECS Fargate |
-| Heroku | `Procfile` | Node dyno |
-| Render | `render.yaml` | Docker service |
-| Railway | `railway.json` | Docker service |
-| Vercel | `vercel.json`, `src/serverless/vercel.js` | Serverless official/gateway |
-| Netlify | `netlify.toml`, `netlify/functions/api.js` | Lightweight contract adapter |
-| VPS umum | `deploy/vps/install.sh`, nginx/systemd sample | Docker Compose |
-| Kubernetes | `k8s/*` | Container orchestration |
-| Hybrid multi-cloud | Cloudflare + 2 origins | Primary/fallback gateway |
+```bash
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Health check: `/health`.
 
 ## Docker
 
-```bash
-cp .env.production.example .env
-docker compose up -d --build
-curl http://localhost:3000/health
-```
-
-## Cloudflare Worker
+Cocok untuk production parity dan platform container.
 
 ```bash
-cd cloudflare/worker
-cp wrangler.toml.example wrangler.toml
-wrangler deploy
+docker build -t tenrusl-instagram-api:production .
+docker run --env-file .env -p 3000:3000 tenrusl-instagram-api:production
 ```
 
-Untuk proxy ke origin Node:
+File: `Dockerfile`, `.dockerignore`.
 
-```toml
-[vars]
-ORIGIN_API_URL = "https://api.example.com"
+## Docker Compose
+
+Cocok untuk local staging.
+
+```bash
+docker compose up --build
 ```
+
+File: `docker-compose.yml`.
+
+## Cloudflare
+
+Cocok sebagai edge proxy. Gunakan `deploy/cloudflare/worker.js` dan set `APP_BASE_URL` ke origin API.
 
 ## GitHub Actions
 
-Push ke `main` atau `master` akan menjalankan CI. Push tag `v*` dapat mem-publish Docker image ke GHCR.
+Cocok untuk CI. Copy `deploy/github/ci.yml` ke `.github/workflows/ci.yml`.
 
-## Google Cloud Run
+## Google Cloud
 
-```bash
-gcloud builds submit --tag gcr.io/PROJECT_ID/tenrusl-instagram-api
-gcloud run deploy tenrusl-instagram-api --image gcr.io/PROJECT_ID/tenrusl-instagram-api --port 3000
-```
+Cocok untuk Cloud Run container. Gunakan `deploy/google-cloud/cloud-run.yaml`.
 
-## AWS ECS Fargate
+Build/start: container image, start `npm start`, port `3000`.
 
-Gunakan `deploy/aws/ecs-task-definition.example.json` sebagai baseline, push image ke ECR, lalu buat service dengan target group health path `/health`.
+## AWS
+
+Cocok untuk App Runner atau ECS. Gunakan `deploy/aws/apprunner.yaml` atau adaptasi ke ECS task.
 
 ## Heroku
 
+Cocok untuk deployment cepat. File: `Procfile`.
+
 ```bash
-heroku create tenrusl-instagram-api
-heroku stack:set heroku-24
-heroku config:set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
-git push heroku main
+heroku config:set NODE_ENV=production IG_PROVIDER=mock
 ```
 
 ## Render
 
-Import blueprint dari `render.yaml`, isi secret, lalu deploy.
+Cocok untuk managed web service. File: `render.yaml` dengan health check `/health`.
 
 ## Railway
 
-```bash
-railway up
-railway variables set NODE_ENV=production APP_MODE=official SCRAPER_ENABLED=false API_KEY_ENABLED=true API_KEY=replace_with_secret
-```
+Cocok untuk deploy cepat Node.js. File: `railway.json`.
 
 ## Vercel
 
-```bash
-vercel --prod
-```
-
-Set env di dashboard: `NODE_ENV`, `APP_MODE`, `SCRAPER_ENABLED`, `API_KEY_ENABLED`, `API_KEY`, `CORS_ORIGIN`.
+Cocok untuk preview serverless. File: `deploy/vercel/vercel.json`.
 
 ## Netlify
 
-```bash
-netlify deploy --prod
-```
+Cocok untuk serverless preview. File: `deploy/netlify/netlify.toml` dan `netlify/functions/api.js`.
 
-Netlify function yang disediakan adalah lightweight contract adapter. Pakai Docker/Kubernetes/VPS untuk full Express stack.
+## VPS
 
-## VPS umum
-
-```bash
-bash deploy/vps/install.sh
-```
-
-Atau manual:
-
-```bash
-git clone https://github.com/kakrusliandika/TenRusl-InstagramApiNodeJs.git
-cd TenRusl-InstagramApiNodeJs
-cp .env.production.example .env
-nano .env
-docker compose up -d --build
-```
+Cocok untuk kontrol penuh. Gunakan Nginx reverse proxy dan systemd service dari `deploy/vps`.
 
 ## Kubernetes
 
+Cocok untuk scale dan multi-region. File: `deploy/kubernetes/*.yaml`.
+
 ```bash
-kubectl apply -f k8s/secret.example.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+kubectl apply -f deploy/kubernetes/
 ```
 
-## Hybrid multi-cloud
+Readiness: `/ready`, liveness: `/live`.
 
-Recommended layout:
+## Hybrid Multi-Cloud
 
-```txt
-Cloudflare Worker
-  ├─ Primary origin: Cloud Run / Render / Railway / Kubernetes
-  └─ Backup origin: VPS Docker / AWS ECS
-```
-
-Gunakan `/health`, `/ready`, `/live`, dan `/metrics` untuk routing health, probe, dan observability.
+Cocok untuk high availability. Gunakan image yang sama di Kubernetes primary, Cloud Run/AWS secondary, VPS fallback, dan edge DNS failover.

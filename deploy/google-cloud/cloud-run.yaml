@@ -1,0 +1,16 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+    name: tenrusl-instagram-api
+spec:
+    template:
+        spec:
+            containers:
+                - image: gcr.io/PROJECT_ID/tenrusl-instagram-api:latest
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      - name: NODE_ENV
+                        value: production
+                      - name: IG_PROVIDER
+                        value: mock

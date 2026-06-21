@@ -1,79 +1,102 @@
 import dotenv from 'dotenv';
-import { APP_MODES } from './constants.js';
 
 dotenv.config();
 
-function readString(name, fallback = '') {
-  const value = process.env[name];
-  if (value === undefined || value === null || value === '') return fallback;
-  return String(value).trim();
+export const PROVIDERS = Object.freeze({
+  MOCK: 'mock',
+  OFFICIAL: 'official',
+  PUBLIC: 'public',
+  AUTHORIZED: 'authorized'
+});
+
+const APP_VERSION = '4.0.0';
+const providerValues = Object.values(PROVIDERS);
+
+function stringValue(name, fallback = '') {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  return String(raw).trim();
 }
 
-function readInteger(name, fallback, { min, max } = {}) {
-  const raw = readString(name, String(fallback));
-  const value = Number.parseInt(raw, 10);
-  if (Number.isNaN(value)) return fallback;
-  if (typeof min === 'number' && value < min) return min;
-  if (typeof max === 'number' && value > max) return max;
+function integerValue(name, fallback, { min, max } = {}) {
+  const parsed = Number.parseInt(stringValue(name, String(fallback)), 10);
+  let value = Number.isFinite(parsed) ? parsed : fallback;
+  if (typeof min === 'number' && value < min) value = min;
+  if (typeof max === 'number' && value > max) value = max;
   return value;
 }
 
-function readBoolean(name, fallback = false) {
-  const raw = readString(name, String(fallback)).toLowerCase();
-  return ['true', '1', 'yes', 'y', 'on'].includes(raw);
+function booleanValue(name, fallback = false) {
+  const raw = stringValue(name, String(fallback)).toLowerCase();
+  return ['1', 'true', 'yes', 'y', 'on'].includes(raw);
 }
 
-function readCsv(name, fallback = '') {
-  return readString(name, fallback)
+function listValue(name, fallback = '') {
+  return stringValue(name, fallback)
     .split(',')
-    .map((item) => item.trim())
+    .map((value) => value.trim())
     .filter(Boolean);
 }
 
-function readMode() {
-  const mode = readString('APP_MODE', APP_MODES.HYBRID).toLowerCase();
-  if (Object.values(APP_MODES).includes(mode)) return mode;
-  return APP_MODES.HYBRID;
+function providerValue() {
+  const requested = stringValue('IG_PROVIDER', PROVIDERS.MOCK).toLowerCase();
+  return providerValues.includes(requested) ? requested : PROVIDERS.MOCK;
 }
 
 export const env = Object.freeze({
-  appMode: readMode(),
-  nodeEnv: readString('NODE_ENV', 'development'),
-  isProduction: readString('NODE_ENV', 'development') === 'production',
-  port: readInteger('PORT', 3000, { min: 1, max: 65535 }),
-  appName: readString('APP_NAME', 'TenRusl Instagram API'),
-  appBaseUrl: readString('APP_BASE_URL', 'http://localhost:3000'),
-  logLevel: readString('LOG_LEVEL', 'info'),
+  appName: stringValue('APP_NAME', 'TenRusl Instagram API Gateway'),
+  appVersion: APP_VERSION,
+  nodeEnv: stringValue('NODE_ENV', 'development'),
+  isProduction: stringValue('NODE_ENV', 'development') === 'production',
+  port: integerValue('PORT', 3000, { min: 1, max: 65535 }),
+  host: stringValue('HOST', '0.0.0.0'),
+  baseUrl: stringValue('APP_BASE_URL', 'http://localhost:3000'),
+  logLevel: stringValue('LOG_LEVEL', 'info'),
 
-  corsOrigin: readCsv('CORS_ORIGIN', 'http://localhost:3000,http://127.0.0.1:3000'),
+  igProvider: providerValue(),
+  corsOrigins: listValue('CORS_ORIGIN', '*'),
+  bodyLimit: stringValue('BODY_LIMIT', '256kb'),
+  apiKeyEnabled: booleanValue('API_KEY_ENABLED', false),
+  apiKey: stringValue('API_KEY', ''),
 
-  apiKeyEnabled: readBoolean('API_KEY_ENABLED', false),
-  apiKey: readString('API_KEY', ''),
+  rateLimitWindowMs: integerValue('RATE_LIMIT_WINDOW_MS', 60_000, { min: 1_000, max: 3_600_000 }),
+  rateLimitMax: integerValue('RATE_LIMIT_MAX', 120, { min: 1, max: 100_000 }),
 
-  rateLimitWindowMs: readInteger('RATE_LIMIT_WINDOW_MS', 60_000, { min: 1_000 }),
-  rateLimitMax: readInteger('RATE_LIMIT_MAX', 60, { min: 1 }),
+  defaultLimit: integerValue('DEFAULT_LIMIT', 25, { min: 1, max: 100 }),
+  maxLimit: integerValue('MAX_LIMIT', 100, { min: 1, max: 500 }),
 
-  defaultFeedLimit: readInteger('DEFAULT_FEED_LIMIT', 12, { min: 1, max: 100 }),
-  maxFeedLimit: readInteger('MAX_FEED_LIMIT', 35, { min: 1, max: 100 }),
+  metaApiVersion: stringValue('META_API_VERSION', 'v23.0'),
+  metaAccessToken: stringValue('META_ACCESS_TOKEN', ''),
+  metaIgUserId: stringValue('META_IG_USER_ID', ''),
+  metaAppId: stringValue('META_APP_ID', ''),
 
-  cacheEnabled: readBoolean('CACHE_ENABLED', true),
-  cacheTtlSeconds: readInteger('CACHE_TTL_SECONDS', 900, { min: 1 }),
-  cacheMaxItems: readInteger('CACHE_MAX_ITEMS', 500, { min: 10 }),
+  publicDataEnabled: booleanValue('PUBLIC_DATA_ENABLED', false),
+  publicDataUpstreamUrl: stringValue('PUBLIC_DATA_UPSTREAM_URL', ''),
 
-  scraperEnabled: readBoolean('SCRAPER_ENABLED', true),
-  scrapeTimeoutMs: readInteger('SCRAPE_TIMEOUT_MS', 30_000, { min: 3_000 }),
-  maxConcurrentScrapes: readInteger('MAX_CONCURRENT_SCRAPES', 2, { min: 1, max: 10 }),
-  puppeteerHeadless: readString('PUPPETEER_HEADLESS', 'true'),
-  puppeteerExecutablePath: readString('PUPPETEER_EXECUTABLE_PATH', ''),
-  puppeteerUserAgent: readString('PUPPETEER_USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Safari/537.36'),
+  authorizedProviderEnabled: booleanValue('AUTHORIZED_PROVIDER_ENABLED', false),
+  authorizedSessionToken: stringValue('AUTHORIZED_SESSION_TOKEN', ''),
 
-  metaApiEnabled: readBoolean('META_API_ENABLED', false),
-  metaApiVersion: readString('META_API_VERSION', 'v23.0'),
-  metaAccessToken: readString('META_ACCESS_TOKEN', ''),
-  metaIgUserId: readString('META_IG_USER_ID', ''),
-  metaUsername: readString('META_USERNAME', ''),
-  metaTimeoutMs: readInteger('META_TIMEOUT_MS', 15_000, { min: 3_000 }),
-
-  scraperApiUrl: readString('SCRAPER_API_URL', ''),
-  scraperApiKey: readString('SCRAPER_API_KEY', '')
+  gracefulShutdownMs: integerValue('GRACEFUL_SHUTDOWN_MS', 10_000, { min: 1_000, max: 60_000 })
 });
+
+export function getEnvironmentWarnings() {
+  const warnings = [];
+
+  if (env.apiKeyEnabled && env.apiKey.length < 16) {
+    warnings.push('API_KEY_ENABLED=true requires API_KEY with at least 16 characters.');
+  }
+
+  if (env.igProvider === PROVIDERS.OFFICIAL && (!env.metaAccessToken || !env.metaIgUserId)) {
+    warnings.push('IG_PROVIDER=official is selected but META_ACCESS_TOKEN or META_IG_USER_ID is missing.');
+  }
+
+  if (env.igProvider === PROVIDERS.PUBLIC && !env.publicDataEnabled) {
+    warnings.push('IG_PROVIDER=public is selected but PUBLIC_DATA_ENABLED=false. Public adapter will stay in safe placeholder mode.');
+  }
+
+  if (env.igProvider === PROVIDERS.AUTHORIZED && !env.authorizedProviderEnabled) {
+    warnings.push('IG_PROVIDER=authorized is selected but AUTHORIZED_PROVIDER_ENABLED=false. Authorized adapter remains disabled by default.');
+  }
+
+  return warnings;
+}

@@ -1,0 +1,16 @@
+[Unit]
+Description=TenRusl Instagram API Gateway
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/tenrusl-instagram-api
+Environment=NODE_ENV=production
+Environment=IG_PROVIDER=mock
+ExecStart=/usr/bin/npm start
+Restart=always
+RestartSec=5
+User=node
+
+[Install]
+WantedBy=multi-user.target

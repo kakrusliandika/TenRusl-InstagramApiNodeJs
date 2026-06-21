@@ -1,38 +1,42 @@
-import app from './app.js';
-import { env } from './config/env.js';
-import { logger } from './utils/logger.js';
-import { closeBrowser } from './services/browser.service.js';
+import { env, getEnvironmentWarnings } from './config/env.js';
+import { logger } from './config/logger.js';
+import { createApp } from './app.js';
 
-const server = app.listen(env.port, () => {
-  logger.info({
+const app = createApp();
+const server = app.listen(env.port, env.host, () => {
+  logger.info('API server started.', {
+    host: env.host,
     port: env.port,
-    mode: env.appMode,
-    environment: env.nodeEnv
-  }, `TenRusl Instagram API running on port ${env.port}`);
+    node: process.version,
+    provider: env.igProvider,
+    warnings: getEnvironmentWarnings()
+  });
 });
 
-async function shutdown(signal) {
-  logger.info({ signal }, 'Shutdown signal received.');
-  server.close(async () => {
-    await closeBrowser();
-    logger.info('HTTP server closed.');
+function shutdown(signal) {
+  logger.info('Graceful shutdown requested.', { signal });
+  const timeout = setTimeout(() => {
+    logger.error('Graceful shutdown timeout reached. Forcing exit.', { signal });
+    process.exit(1);
+  }, env.gracefulShutdownMs);
+
+  server.close((error) => {
+    clearTimeout(timeout);
+    if (error) {
+      logger.error('HTTP server shutdown failed.', { error: error.message });
+      process.exit(1);
+    }
+    logger.info('HTTP server stopped cleanly.', { signal });
     process.exit(0);
   });
-
-  setTimeout(() => {
-    logger.error('Forced shutdown after timeout.');
-    process.exit(1);
-  }, 10_000).unref();
 }
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
-
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
 process.on('unhandledRejection', (reason) => {
-  logger.error({ reason }, 'Unhandled promise rejection.');
+  logger.error('Unhandled promise rejection.', { reason: reason instanceof Error ? reason.message : String(reason) });
 });
-
 process.on('uncaughtException', (error) => {
-  logger.fatal({ error }, 'Uncaught exception.');
+  logger.error('Uncaught exception.', { error: error.message, stack: error.stack });
   process.exit(1);
 });

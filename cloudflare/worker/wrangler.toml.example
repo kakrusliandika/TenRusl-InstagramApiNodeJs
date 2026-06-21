@@ -1,9 +1,0 @@
-name = "tenrusl-instagram-api-gateway"
-main = "src/index.js"
-compatibility_date = "2026-06-21"
-
-[vars]
-APP_MODE = "official"
-MAX_FEED_LIMIT = "35"
-# Optional: set ORIGIN_API_URL to proxy every /v1/* request to the full Node service.
-# ORIGIN_API_URL = "https://api.example.com"

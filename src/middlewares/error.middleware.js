@@ -1,32 +1,30 @@
 import { env } from '../config/env.js';
-import { ERROR_CODES } from '../config/constants.js';
-import { isOperationalError } from '../utils/errors.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../config/logger.js';
+import { AppError, ERROR_CODES, isOperationalError } from '../utils/errors.js';
 import { sendError } from '../utils/response.js';
 
 export function errorMiddleware(error, req, res, _next) {
-  const statusCode = error.statusCode || 500;
-  const normalizedError = {
-    statusCode,
-    code: error.code || ERROR_CODES.INTERNAL_ERROR,
-    message: statusCode >= 500 && env.isProduction ? 'Internal server error.' : error.message,
-    details: statusCode >= 500 && env.isProduction ? undefined : error.details
-  };
+  const statusCode = Number(error.statusCode) || 500;
+  const normalized = new AppError(
+    statusCode >= 500 && env.isProduction ? 'Internal server error.' : (error.message || 'Unexpected error.'),
+    {
+      statusCode,
+      code: error.code || ERROR_CODES.INTERNAL_ERROR,
+      details: statusCode >= 500 && env.isProduction ? {} : (error.details || {})
+    }
+  );
 
   const logPayload = {
     requestId: req.id,
     method: req.method,
-    url: req.originalUrl,
+    path: req.originalUrl,
     statusCode,
-    code: normalizedError.code,
-    error: error.stack || error.message
+    code: normalized.code,
+    stack: error.stack
   };
 
-  if (statusCode >= 500 || !isOperationalError(error)) {
-    logger.error(logPayload, 'Unhandled API error.');
-  } else {
-    logger.warn(logPayload, 'Handled API error.');
-  }
+  if (statusCode >= 500 || !isOperationalError(error)) logger.error('Unhandled request error.', logPayload);
+  else logger.warn('Handled request error.', logPayload);
 
-  return sendError(res, normalizedError);
+  return sendError(res, normalized, { requestId: req.id });
 }

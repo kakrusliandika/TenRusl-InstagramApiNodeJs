@@ -1,32 +1,33 @@
-# 🧠 Architecture
+# Architecture
+
+The API uses a clean adapter boundary.
 
 ```mermaid
-flowchart TD
-  A[Client] --> B[Cloudflare / Reverse Proxy]
-  B --> C[Express API]
-  C --> D{APP_MODE}
-  D -->|official| E[Meta Instagram API]
-  D -->|scraper| F[Puppeteer Browser]
-  D -->|hybrid| G[Official first]
-  G -->|success| E
-  G -->|fallback| F
-  C --> H[LRU Cache]
-  C --> I[Rate Limit + API Key]
+flowchart LR
+  Client --> Express[Express app]
+  Express --> Middleware[Security / Metrics / API key]
+  Middleware --> Validation[Zod validation]
+  Validation --> Routes[V1 route contract]
+  Routes --> Factory[Instagram provider factory]
+  Factory --> Mock
+  Factory --> Official
+  Factory --> Public
+  Factory --> Authorized
+  Mock --> Envelope[Standard response envelope]
+  Official --> Envelope
+  Public --> Envelope
+  Authorized --> Envelope
 ```
 
-## Services
+## Source layout
 
-| Service | Tugas |
-|---|---|
-| `instagram.service.js` | Orchestrator mode official/scraper/hybrid |
-| `meta.service.js` | Akses Meta Instagram API resmi |
-| `scraper.service.js` | Public scraping best-effort |
-| `browser.service.js` | Lifecycle Puppeteer browser |
-| `cache.service.js` | Memory cache |
-| `queue.service.js` | Concurrency control untuk scraping |
-
-## Why three modes?
-
-- **Official**: paling stabil dan sesuai produksi resmi.
-- **Scraper**: fleksibel untuk lokal dan fallback publik.
-- **Hybrid**: jalur masa depan; official dulu, fallback scraper jika perlu.
+- `src/app.js`: Express app composition.
+- `src/server.js`: HTTP server and graceful shutdown.
+- `src/config`: environment and logger.
+- `src/routes`: system and v1 routers.
+- `src/modules`: domain module placeholders and gateway controller.
+- `src/providers/instagram`: provider factory and provider adapters.
+- `src/middlewares`: request ID, security, rate limit, API key, errors.
+- `src/schemas`: validation schemas.
+- `src/utils`: envelope, validation helpers, errors, pagination, Instagram URL parser.
+- `src/tests`: Node test runner coverage.

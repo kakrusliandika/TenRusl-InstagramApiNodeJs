@@ -1,18 +1,22 @@
 # Contributing
 
-Thank you for improving TenRusl Instagram API.
+Terima kasih ingin berkontribusi pada TenRusl Instagram API Gateway.
 
-## Development flow
+## Prinsip
 
-1. Fork or create a feature branch.
-2. Copy `.env.example` to `.env`.
-3. Run `npm install`.
-4. Run `npm run check` and `npm test`.
-5. Submit a pull request.
+- Default aman: mock provider, dry-run action, tanpa secret hardcoded.
+- Provider non-resmi harus terpisah dan tidak boleh melewati login, proteksi, rate-limit, atau kontrol akses.
+- Semua endpoint harus memakai response envelope standar.
+- Tambahkan test saat menambah endpoint atau provider.
 
-## Code style
+## Workflow
 
-- Keep important code comments in English.
-- Keep user-facing docs clear in Indonesian.
-- Keep scraper logic isolated in `src/services/scraper.service.js`.
-- Keep official Meta API logic isolated in `src/services/meta.service.js`.
+```bash
+npm install
+npm run check
+npm test
+npm run doctor
+npm run lint
+```
+
+Buat pull request dengan ringkasan perubahan, risiko, dan hasil test.

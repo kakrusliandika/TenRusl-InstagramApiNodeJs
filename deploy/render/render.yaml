@@ -1,0 +1,13 @@
+services:
+    - type: web
+      name: tenrusl-instagram-api
+      env: node
+      plan: starter
+      buildCommand: npm ci
+      startCommand: npm start
+      healthCheckPath: /health
+      envVars:
+          - key: NODE_ENV
+            value: production
+          - key: IG_PROVIDER
+            value: mock

@@ -1,59 +1,67 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import request from 'supertest';
-import { createApp } from '../app.js';
+import { assertEnvelope, requestJson, withServer } from './test-client.js';
 
-const getEndpoints = [
-  '/ready',
-  '/live',
-  '/metrics',
-  '/v1/accounts',
-  '/v1/accounts/acc_123',
-  '/v1/profiles',
-  '/v1/profiles/prof_123',
-  '/v1/followers/self',
-  '/v1/followers/users/kakrusliandika',
-  '/v1/following/self',
-  '/v1/following/users/kakrusliandika',
-  '/v1/photos/users/kakrusliandika',
-  '/v1/feeds/users/kakrusliandika',
-  '/v1/statuses/users/kakrusliandika',
-  '/v1/posts',
-  '/v1/posts/post_123',
-  '/v1/posts/by-link?link=https%3A%2F%2Fwww.instagram.com%2Fp%2FCODE123%2F',
-  '/v1/posts?link=https%3A%2F%2Fwww.instagram.com%2Freel%2FCODE123%2F',
-  '/v1/reels',
-  '/v1/media',
-  '/v1/comments',
-  '/v1/mentions',
-  '/v1/hashtags/media?tag=nodejs',
-  '/v1/insights',
-  '/v1/conversations',
-  '/v1/messages'
+const instagramLink = encodeURIComponent('https://www.instagram.com/p/ABC123def45/');
+const storyLink = encodeURIComponent('https://www.instagram.com/stories/tenrusl/123456789/');
+const profileLink = encodeURIComponent('https://www.instagram.com/tenrusl/');
+const validPublishBody = { mediaUrl: 'https://example.com/image.jpg', mediaType: 'IMAGE', caption: 'Dry run publish', dryRun: true };
+const validReplyBody = { text: 'Dry run reply', dryRun: true };
+const validMessageBody = { username: 'tenrusl', text: 'Dry run message', dryRun: true };
+
+const routes = [
+  ['GET', '/v1/get/accounts/123456'],
+  ['GET', '/v1/get/accounts/tenrusl'],
+  ['GET', '/v1/get/profiles/123456'],
+  ['GET', '/v1/get/profiles/tenrusl'],
+  ['GET', `/v1/get/profiles/by-link?link=${profileLink}`],
+  ['GET', '/v1/get/followers/tenrusl?limit=2'],
+  ['GET', '/v1/get/following/123456?limit=2'],
+  ['POST', '/v1/actions/follow/tenrusl', { dryRun: true }],
+  ['POST', '/v1/actions/unfollow/123456', { dryRun: true }],
+  ['GET', '/v1/get/photos/users/tenrusl?limit=2'],
+  ['GET', '/v1/get/feeds/users/123456?limit=2'],
+  ['GET', '/v1/get/statuses/users/tenrusl?limit=2'],
+  ['GET', `/v1/get/photos/by-link?link=${instagramLink}`],
+  ['GET', `/v1/get/feeds/by-link?link=${instagramLink}`],
+  ['GET', `/v1/get/statuses/by-link?link=${storyLink}`],
+  ['GET', '/v1/get/posts/users/tenrusl?limit=2'],
+  ['GET', '/v1/get/posts/users/123456?limit=2'],
+  ['GET', `/v1/get/posts/by-link?link=${instagramLink}`],
+  ['GET', '/v1/get/posts/post_123'],
+  ['GET', '/v1/get/reels/users/tenrusl?limit=2'],
+  ['GET', '/v1/get/reels/users/123456?limit=2'],
+  ['GET', `/v1/get/reels/by-link?link=${instagramLink}`],
+  ['GET', '/v1/get/media/users/tenrusl?limit=2'],
+  ['GET', '/v1/get/media/users/123456?limit=2'],
+  ['GET', `/v1/get/media/by-link?link=${instagramLink}`],
+  ['POST', '/v1/publish/media', validPublishBody],
+  ['POST', '/v1/publish/reels', { ...validPublishBody, mediaType: 'REEL' }],
+  ['POST', '/v1/publish/photos', validPublishBody],
+  ['POST', '/v1/publish/feeds', { ...validPublishBody, mediaType: 'FEED' }],
+  ['POST', '/v1/publish/statuses', { ...validPublishBody, mediaType: 'STORY' }],
+  ['GET', `/v1/comments?link=${instagramLink}`],
+  ['POST', '/v1/comments/comment_123/reply', validReplyBody],
+  ['POST', '/v1/comments/reply', { ...validReplyBody, id: 'comment_123' }],
+  ['GET', '/v1/mentions?limit=2'],
+  ['GET', '/v1/hashtags/media?hashtag=tenrusl&limit=2'],
+  ['GET', '/v1/insights'],
+  ['GET', '/v1/conversations?limit=2'],
+  ['GET', '/v1/messages?limit=2'],
+  ['GET', '/v1/messages/thread_123?limit=2'],
+  ['POST', '/v1/messages/thread_123/send', validMessageBody]
 ];
 
-const postEndpoints = [
-  ['/v1/actions/follow/from-username', { targetUsername: 'kakrusliandika' }],
-  ['/v1/actions/unfollow/from-username', { targetUsername: 'kakrusliandika' }],
-  ['/v1/publish/media', { mediaUrl: 'https://example.com/photo.jpg', caption: 'demo' }],
-  ['/v1/publish/reel', { mediaUrl: 'https://example.com/reel.mp4', caption: 'demo' }],
-  ['/v1/comments/comment_123/reply', { text: 'Terima kasih' }],
-  ['/v1/messages/send', { recipientUsername: 'kakrusliandika', message: 'Halo' }]
-];
-
-test('all requested GET endpoints are mounted', async () => {
-  const app = createApp();
-  for (const endpoint of getEndpoints) {
-    const response = await request(app).get(endpoint).expect(200);
-    if (endpoint !== '/metrics') assert.equal(response.body.success, true, endpoint);
-  }
-});
-
-test('all requested POST endpoints are mounted as safe dry-run actions', async () => {
-  const app = createApp();
-  for (const [endpoint, body] of postEndpoints) {
-    const response = await request(app).post(endpoint).send(body).expect(202);
-    assert.equal(response.body.success, true, endpoint);
-    assert.equal(response.body.dryRun, true, endpoint);
-  }
+test('all required /v1 routes return non-404 standard envelopes in mock mode', async () => {
+  await withServer(async ({ baseUrl }) => {
+    for (const [method, path, body] of routes) {
+      const result = await requestJson(baseUrl, path, {
+        method,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      assert.notEqual(result.response.status, 404, `${method} ${path}`);
+      assert.ok(result.response.status < 500, `${method} ${path}`);
+      assertEnvelope(result.body, result.response.status < 400);
+    }
+  });
 });

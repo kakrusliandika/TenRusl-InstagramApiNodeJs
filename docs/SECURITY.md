@@ -1,25 +1,35 @@
-# 🛡️ Security Notes
+# Security Notes
 
-## Wajib untuk public production scraper
+## Implemented hardening
 
-```env
-API_KEY_ENABLED=true
-API_KEY=long-random-secret
-RATE_LIMIT_MAX=30
-CACHE_ENABLED=true
-MAX_CONCURRENT_SCRAPES=2
-```
+- Helmet security headers.
+- Configurable CORS.
+- Basic in-memory rate limit.
+- Request ID per request.
+- JSON body size limit.
+- Input sanitization for body, params, and query values.
+- Zod validation schemas.
+- Global not-found and error handlers.
+- Standard error envelope.
+- Structured JSON logging with secret redaction.
+- Graceful shutdown.
+- Default mock provider and dry-run write operations.
 
-## Jangan lakukan ini
+## Not included by design
 
-- Jangan taruh token Meta di frontend.
-- Jangan expose endpoint scraper tanpa API key.
-- Jangan scraping setiap request tanpa cache.
-- Jangan deploy Puppeteer berat ke serverless biasa kecuali Anda benar-benar paham limit-nya.
+- Login bypass.
+- Credential stuffing.
+- Anti-bot or rate-limit evasion.
+- Session theft.
+- Raw password storage.
+- Aggressive scraping.
 
-## Cloudflare recommended rules
+## Production checklist
 
-- Enable SSL/TLS Full Strict.
-- Enable WAF managed rules.
-- Add rate limiting by path `/api/v1/instagram/*`.
-- Cache successful official API responses at edge if sesuai kebutuhan.
+- Set `NODE_ENV=production`.
+- Use `API_KEY_ENABLED=true` or protect the API behind an auth gateway.
+- Restrict `CORS_ORIGIN`.
+- Use `IG_PROVIDER=official` with Meta-approved scopes for real data.
+- Put secrets in cloud secret manager.
+- Monitor `/ready`, `/live`, and `/metrics`.
+- Rotate tokens and audit access logs.
