@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { env, getEnvironmentWarnings } from "../config/env.js";
-import { getInstagramProvider } from "../providers/instagram/index.js";
+import { PROVIDER_CAPABILITIES, getInstagramProvider } from "../providers/instagram/index.js";
 import { getMetricsSnapshot, getPrometheusMetrics } from "../services/metrics.service.js";
 import { sendSuccess } from "../utils/response.js";
 
@@ -63,7 +63,22 @@ export function metricsHandler(req, res) {
     return res.send(getPrometheusMetrics(provider.status()));
 }
 
+export function capabilitiesHandler(req, res) {
+    const provider = getInstagramProvider();
+    return sendSuccess(
+        res,
+        {
+            activeProvider: env.igProvider,
+            provider: provider.status(),
+            supportedProviders: PROVIDER_CAPABILITIES,
+            warnings: getEnvironmentWarnings(),
+        },
+        { meta: { requestId: req.id } }
+    );
+}
+
 systemRouter.get("/health", healthHandler);
 systemRouter.get("/ready", readyHandler);
 systemRouter.get("/live", liveHandler);
 systemRouter.get("/metrics", metricsHandler);
+systemRouter.get("/capabilities", capabilitiesHandler);

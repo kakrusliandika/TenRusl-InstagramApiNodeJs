@@ -12,6 +12,7 @@ TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk
 - 🧩 Provider adapter: `mock`, `official`, `public`, `authorized`.
 - 🔐 Production hardening: Helmet, CORS configurable, API key optional, rate limit, request ID, body limit, sanitization, error handler global.
 - 📊 Observability: `/health`, `/ready`, `/live`, `/metrics` Prometheus-style + JSON.
+- 🧭 Capability discovery: `/capabilities` exposes provider mode and safe operation support.
 - 🧪 Testable tanpa credential Instagram asli memakai `IG_PROVIDER=mock`.
 - ⚙️ ESM, Express.js, Node.js 24 LTS primary, Node.js 22 compatible.
 - 📦 Docker, Docker Compose, Kubernetes, VPS, Cloudflare proxy, GitHub Actions, Google Cloud, AWS, Heroku, Render, Railway, Vercel, Netlify, hybrid multi-cloud.
@@ -22,9 +23,9 @@ TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk
 | Provider | Env | Status default | Cocok untuk | Catatan |
 |---|---|---:|---|---|
 | Mock | `IG_PROVIDER=mock` | Aktif | Local dev, demo, CI/CD, preview deploy | Semua endpoint testable, action selalu dry-run |
-| Official | `IG_PROVIDER=official` | Perlu token | Akun Business/Creator resmi | Gunakan `META_ACCESS_TOKEN`, `META_IG_USER_ID`, scope sesuai app review |
-| Public | `IG_PROVIDER=public` | Safe placeholder | Lookup data publik yang diizinkan | Tidak melakukan bypass login/anti-bot/rate-limit |
-| Authorized | `IG_PROVIDER=authorized` | Disabled | Advanced owned/consented data | Butuh `AUTHORIZED_PROVIDER_ENABLED=true`, tidak menyimpan password mentah |
+| Official | `IG_PROVIDER=official` | Partial | Akun Business/Creator resmi | Boundary Meta Graph API untuk account/profile/insights milik `META_IG_USER_ID`; endpoint lain error eksplisit |
+| Public | `IG_PROVIDER=public` | Disabled | Upstream data publik yang compliant | Membutuhkan `PUBLIC_DATA_ENABLED=true` dan upstream milik sendiri; write/private endpoints ditolak |
+| Authorized | `IG_PROVIDER=authorized` | Disabled | Advanced owned/consented data | Belum production-ready; semua operasi live error eksplisit sampai integrasi reviewed ditambahkan |
 
 ## 🧱 Arsitektur
 
@@ -102,6 +103,8 @@ curl http://localhost:3000/health
 curl http://localhost:3000/v1/get/profiles/tenrusl
 ```
 
+The root path `/` serves the static status page from `public/index.html`. API routes stay under `/health`, `/ready`, `/live`, `/metrics`, `/v1`, and `/api/v1`.
+
 ## ⚙️ Setup Environment
 
 Minimal local:
@@ -109,15 +112,23 @@ Minimal local:
 ```env
 NODE_ENV=development
 PORT=3000
+HOST=0.0.0.0
+TRUST_PROXY=1
 IG_PROVIDER=mock
 CORS_ORIGIN=*
 API_KEY_ENABLED=false
+BODY_LIMIT=256kb
+DEFAULT_LIMIT=25
+MAX_LIMIT=100
+GRACEFUL_SHUTDOWN_MS=10000
 ```
 
 Official provider:
 
 ```env
 IG_PROVIDER=official
+META_GRAPH_BASE_URL=https://graph.facebook.com
+PROVIDER_REQUEST_TIMEOUT_MS=10000
 META_ACCESS_TOKEN=your_meta_access_token
 META_IG_USER_ID=your_instagram_business_or_creator_user_id
 META_API_VERSION=v23.0
@@ -127,8 +138,9 @@ Public provider safe mode:
 
 ```env
 IG_PROVIDER=public
-PUBLIC_DATA_ENABLED=false
-PUBLIC_DATA_UPSTREAM_URL=
+PROVIDER_REQUEST_TIMEOUT_MS=10000
+PUBLIC_DATA_ENABLED=true
+PUBLIC_DATA_UPSTREAM_URL=https://your-compliant-public-data-upstream.example
 ```
 
 Authorized provider advanced mode:
@@ -138,6 +150,8 @@ IG_PROVIDER=authorized
 AUTHORIZED_PROVIDER_ENABLED=false
 AUTHORIZED_SESSION_TOKEN=
 ```
+
+Runtime env yang dibaca aplikasi ada di `src/config/env.js`. Legacy env `APP_MODE`, `SCRAPER_ENABLED`, `CACHE_ENABLED`, `PUPPETEER_HEADLESS`, dan `META_API_ENABLED` sudah deprecated dan tidak dipakai runtime Express.
 
 ## 🧪 Run Development, Production, Test
 
@@ -186,6 +200,7 @@ Error:
 | System | GET | `/ready` | readiness + provider warnings |
 | System | GET | `/live` | liveness |
 | System | GET | `/metrics` | Prometheus text, `?format=json` untuk JSON |
+| System | GET | `/capabilities` | active provider and supported operation capabilities |
 | Accounts | GET | `/v1/get/accounts/:identifier` | ID atau username |
 | Profiles | GET | `/v1/get/profiles/:identifier` | ID atau username |
 | Profiles | GET | `/v1/get/profiles/by-link?link=` | link profile Instagram |
@@ -213,7 +228,7 @@ Error:
 | Publish | POST | `/v1/publish/statuses` | dry-run |
 | Comments | GET | `/v1/comments?link=` | comments by link optional |
 | Comments | POST | `/v1/comments/:id/reply` | dry-run |
-| Comments | POST | `/v1/comments/reply` | body `id` or `link`, dry-run |
+| Comments | POST | `/v1/comments/reply` | body `id` or `link`, dry-run; `id` wins if both are sent |
 | Discovery | GET | `/v1/mentions` | mentions contract |
 | Discovery | GET | `/v1/hashtags/media?hashtag=` | hashtag media |
 | Insights | GET | `/v1/insights` | official provider recommended |
@@ -231,6 +246,7 @@ curl http://localhost:3000/health
 curl http://localhost:3000/ready
 curl http://localhost:3000/live
 curl http://localhost:3000/metrics
+curl http://localhost:3000/capabilities
 ```
 
 Accounts and profiles:
@@ -288,7 +304,26 @@ curl "http://localhost:3000/v1/comments?link=https://www.instagram.com/p/ABC123d
 curl -X POST http://localhost:3000/v1/comments/comment_123/reply \
   -H "content-type: application/json" \
   -d '{"text":"Thanks!","dryRun":true}'
+curl -X POST http://localhost:3000/v1/comments/reply \
+  -H "content-type: application/json" \
+  -d '{"id":"comment_123","text":"Thanks!","dryRun":true}'
+curl -X POST http://localhost:3000/v1/comments/reply \
+  -H "content-type: application/json" \
+  -d '{"link":"https://www.instagram.com/p/ABC123def45/","text":"Thanks!","dryRun":true}'
 ```
+
+`/v1/comments/reply` body:
+
+```json
+{
+  "id": "comment_123",
+  "link": "https://www.instagram.com/p/ABC123def45/",
+  "text": "Thanks!",
+  "dryRun": true
+}
+```
+
+At least one of `id` or `link` is required. When both are present, `id` is used as the reply target because it is explicit and avoids URL ambiguity. `link` must be a supported Instagram post, reel, tv, or story URL. The gateway does not scrape or bypass login.
 
 Discovery, insights, messages:
 
@@ -353,6 +388,7 @@ docker run --env-file .env -p 3000:3000 tenrusl-instagram-api:production
 ### Docker Compose
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
@@ -362,7 +398,7 @@ Gunakan Worker sebagai edge proxy ke origin container. File: `deploy/cloudflare/
 
 ### GitHub Actions
 
-Gunakan workflow di `deploy/github/ci.yml`. Copy ke `.github/workflows/ci.yml`.
+Gunakan workflow aktif di `.github/workflows/ci.yml`. Workflow menjalankan `check`, `test`, `doctor`, dan `lint` pada Node.js 22 dan 24.
 
 ### Google Cloud
 
@@ -374,7 +410,7 @@ Gunakan App Runner atau ECS. File: `deploy/aws/apprunner.yaml`.
 
 ### Heroku
 
-Gunakan `Procfile`:
+Gunakan root `Procfile`:
 
 ```bash
 heroku config:set NODE_ENV=production IG_PROVIDER=mock
@@ -390,7 +426,7 @@ Gunakan `railway.json`. Start command: `npm start`.
 
 ### Vercel / Netlify
 
-Cocok untuk serverless preview. Untuk traffic produksi stabil, container lebih disarankan. File: `deploy/vercel/vercel.json`, `deploy/netlify/netlify.toml`.
+Cocok untuk serverless preview. Untuk traffic produksi stabil, container lebih disarankan. File aktif: root `vercel.json` dan `netlify.toml`.
 
 ### VPS
 
@@ -407,6 +443,18 @@ Readiness: `/ready`, liveness: `/live`.
 ### Hybrid Multi-Cloud
 
 Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge melakukan failover berdasarkan health check.
+
+## ✅ Release Checklist
+
+- Environment production lengkap dan berasal dari secret manager, bukan `.env.example`.
+- `IG_PROVIDER` dipilih secara sadar: `mock`, `official`, `public`, atau `authorized`.
+- `API_KEY_ENABLED=true` dan `API_KEY` kuat untuk API publik, atau ada proteksi gateway upstream setara.
+- `CORS_ORIGIN` dibatasi ke domain production.
+- `npm run check`, `npm run lint`, `npm test`, dan `npm run doctor` lulus di CI.
+- Deployment target memakai config aktif yang benar: `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `Procfile`, `render.yaml`, `railway.json`, `vercel.json`, atau `netlify.toml`.
+- Health check target memakai `/health`, readiness memakai `/ready`, dan liveness memakai `/live`.
+- `IG_PROVIDER=mock` tidak dipakai untuk production kecuali sengaja untuk preview/demo tanpa data live.
+- Provider non-mock sudah diuji dengan env wajib dan batasan legal/compliance masing-masing.
 
 ## 🔐 Security Notes
 
@@ -425,8 +473,9 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 | 400 username invalid | Username hanya huruf, angka, titik, underscore; tanpa titik ganda/trailing |
 | 400 link invalid | Gunakan link Instagram `p`, `reel`, `tv`, `stories`, atau profile |
 | 429 rate limit | Naikkan `RATE_LIMIT_MAX` atau tambah gateway-level quota |
-| Official provider not configured | Isi `META_ACCESS_TOKEN` dan `META_IG_USER_ID` |
-| Authorized disabled | Set `AUTHORIZED_PROVIDER_ENABLED=true` hanya untuk data berizin |
+| Official provider not configured | Isi `META_GRAPH_BASE_URL`, `META_ACCESS_TOKEN`, dan `META_IG_USER_ID` |
+| Public provider disabled | Set `PUBLIC_DATA_ENABLED=true` dan `PUBLIC_DATA_UPSTREAM_URL` yang valid |
+| Authorized disabled | Set `AUTHORIZED_PROVIDER_ENABLED=true` dan `AUTHORIZED_SESSION_TOKEN`, lalu implementasikan integrasi reviewed sebelum production |
 
 ## 📁 Folder Structure
 
@@ -437,7 +486,7 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 │   ├── server.js
 │   ├── config
 │   ├── routes
-│   ├── modules
+│   ├── modules/gateway.controller.js
 │   ├── providers/instagram
 │   ├── middlewares
 │   ├── schemas

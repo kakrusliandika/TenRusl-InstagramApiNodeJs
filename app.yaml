@@ -4,10 +4,23 @@ entrypoint: node src/server.js
 
 env_variables:
   NODE_ENV: production
-  APP_MODE: official
-  SCRAPER_ENABLED: "false"
+  IG_PROVIDER: official
+  PORT: "3000"
+  BODY_LIMIT: 256kb
   API_KEY_ENABLED: "true"
+  API_KEY: replace_with_32_plus_character_random_secret
   CORS_ORIGIN: https://your-domain.example
+  DEFAULT_LIMIT: "25"
+  MAX_LIMIT: "100"
+  PUBLIC_DATA_ENABLED: "false"
+  PUBLIC_DATA_UPSTREAM_URL: ""
+  AUTHORIZED_PROVIDER_ENABLED: "false"
+  AUTHORIZED_SESSION_TOKEN: ""
+  GRACEFUL_SHUTDOWN_MS: "10000"
+  # Required when IG_PROVIDER=official. Prefer a platform secret manager for real values.
+  META_API_VERSION: v23.0
+  META_ACCESS_TOKEN: replace_with_meta_access_token
+  META_IG_USER_ID: replace_with_instagram_business_or_creator_user_id
 
 automatic_scaling:
   min_instances: 0

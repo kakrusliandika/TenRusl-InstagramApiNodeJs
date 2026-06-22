@@ -65,3 +65,58 @@ test('all required /v1 routes return non-404 standard envelopes in mock mode', a
     }
   });
 });
+
+test('comment reply by body id returns dry-run target', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const { response, body } = await requestJson(baseUrl, '/v1/comments/reply', {
+      method: 'POST',
+      body: JSON.stringify({ id: 'comment_123', text: 'Dry run reply', dryRun: true })
+    });
+
+    assert.equal(response.status, 202);
+    assertEnvelope(body, true);
+    assert.equal(body.data.accepted, true);
+    assert.equal(body.data.target.type, 'id');
+    assert.equal(body.data.target.id, 'comment_123');
+  });
+});
+
+test('comment reply by link returns dry-run link target', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const { response, body } = await requestJson(baseUrl, '/v1/comments/reply', {
+      method: 'POST',
+      body: JSON.stringify({
+        link: 'https://www.instagram.com/p/ABC123def45/',
+        text: 'Dry run reply by link',
+        dryRun: true
+      })
+    });
+
+    assert.equal(response.status, 202);
+    assertEnvelope(body, true);
+    assert.equal(body.data.accepted, true);
+    assert.equal(body.data.target.type, 'link');
+    assert.equal(body.data.target.link.kind, 'post');
+    assert.equal(body.data.target.link.shortcode, 'ABC123def45');
+  });
+});
+
+test('comment reply body id takes priority over link', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const { response, body } = await requestJson(baseUrl, '/v1/comments/reply', {
+      method: 'POST',
+      body: JSON.stringify({
+        id: 'comment_456',
+        link: 'https://www.instagram.com/p/ABC123def45/',
+        text: 'Dry run reply by id',
+        dryRun: true
+      })
+    });
+
+    assert.equal(response.status, 202);
+    assertEnvelope(body, true);
+    assert.equal(body.data.target.type, 'id');
+    assert.equal(body.data.target.id, 'comment_456');
+    assert.equal(body.data.target.priority, 'id');
+  });
+});

@@ -3,7 +3,7 @@ services:
     build: .
     image: tenrusl-instagram-api:production
     env_file:
-      - .env.example
+      - .env
     environment:
       NODE_ENV: production
       IG_PROVIDER: mock

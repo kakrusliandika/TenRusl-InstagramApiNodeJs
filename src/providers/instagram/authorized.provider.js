@@ -1,70 +1,79 @@
 import { env } from "../../config/env.js";
 import { AppError, ERROR_CODES } from "../../utils/errors.js";
-import { MockInstagramProvider } from "./mock.provider.js";
+import { capabilitiesFor } from "./capabilities.js";
 
-export class AuthorizedInstagramProvider extends MockInstagramProvider {
-    constructor() {
-        super({ name: "authorized", mode: "authorized" });
-        this.ready = Boolean(env.authorizedProviderEnabled && env.authorizedSessionToken);
+function now() {
+    return new Date().toISOString();
+}
+
+export class AuthorizedInstagramProvider {
+    constructor(options = {}) {
+        this.config = options.config || env;
+        this.name = "authorized";
+        this.mode = "authorized";
         this.safeMode = true;
+        this.ready = Boolean(this.config.authorizedProviderEnabled && this.config.authorizedSessionToken);
     }
 
     status() {
         return {
-            ...super.status(),
+            provider: this.name,
+            mode: this.mode,
             ready: this.ready,
-            enabled: env.authorizedProviderEnabled,
-            compliance:
-                "Advanced mode for data owned by the caller or explicitly authorized by the owner. Disabled by default and does not store raw passwords.",
+            safeMode: this.safeMode,
+            enabled: this.config.authorizedProviderEnabled,
+            capabilities: capabilitiesFor(this.name),
+            implementation: "disabled-until-reviewed-integration-is-added",
+            writeMode: "not-implemented",
+            generatedAt: now(),
         };
     }
 
     ensureEnabled() {
-        if (!this.ready) {
-            throw new AppError(
-                "Authorized provider is disabled by default. Enable only for explicitly authorized data and provide a session token.",
-                {
-                    statusCode: 503,
-                    code: ERROR_CODES.PROVIDER_NOT_CONFIGURED,
-                    details: {
-                        provider: "authorized",
-                        required: ["AUTHORIZED_PROVIDER_ENABLED=true", "AUTHORIZED_SESSION_TOKEN"],
-                    },
-                }
-            );
-        }
-    }
+        if (this.ready) return;
 
-    async performAction(action, identifier, body = {}) {
-        if (body.dryRun !== false) return super.performAction(action, identifier, body);
-        this.ensureEnabled();
         throw new AppError(
-            "Live authorized write action is not implemented. Add a reviewed integration and explicit user consent before enabling.",
+            "Authorized provider is disabled. Enable it only for explicitly authorized data and provide AUTHORIZED_SESSION_TOKEN.",
             {
-                statusCode: 501,
-                code: ERROR_CODES.PROVIDER_OPERATION_DISABLED,
-                details: { provider: "authorized", action },
+                statusCode: 503,
+                code: ERROR_CODES.PROVIDER_NOT_CONFIGURED,
+                details: {
+                    provider: "authorized",
+                    required: ["AUTHORIZED_PROVIDER_ENABLED=true", "AUTHORIZED_SESSION_TOKEN"],
+                },
             }
         );
     }
 
-    async publish(resource, body = {}) {
-        if (body.dryRun !== false) return super.publish(resource, body);
+    notImplemented(operation, details = {}) {
         this.ensureEnabled();
-        throw new AppError("Live authorized publishing is not implemented in this safe gateway skeleton.", {
-            statusCode: 501,
-            code: ERROR_CODES.PROVIDER_OPERATION_DISABLED,
-            details: { provider: "authorized", resource },
-        });
+        throw new AppError(
+            "Authorized provider operation is not implemented. Add a reviewed integration and explicit user consent before enabling production traffic.",
+            {
+                statusCode: 501,
+                code: ERROR_CODES.PROVIDER_OPERATION_DISABLED,
+                details: { provider: "authorized", operation, ...details },
+            }
+        );
     }
 
-    async sendMessage(id, body = {}) {
-        if (body.dryRun !== false) return super.sendMessage(id, body);
-        this.ensureEnabled();
-        throw new AppError("Live authorized messaging is not implemented in this safe gateway skeleton.", {
-            statusCode: 501,
-            code: ERROR_CODES.PROVIDER_OPERATION_DISABLED,
-            details: { provider: "authorized" },
-        });
-    }
+    async getAccount() { this.notImplemented("get-account"); }
+    async getProfile() { this.notImplemented("get-profile"); }
+    async getProfileByLink() { this.notImplemented("get-profile-by-link"); }
+    async getFollowers() { this.notImplemented("get-followers"); }
+    async getFollowing() { this.notImplemented("get-following"); }
+    async performAction(action) { this.notImplemented("perform-action", { action }); }
+    async getUserCollection(resource) { this.notImplemented("get-user-collection", { resource }); }
+    async getByLink(resource) { this.notImplemented("get-by-link", { resource }); }
+    async getPostById() { this.notImplemented("get-post-by-id"); }
+    async publish(resource) { this.notImplemented("publish", { resource }); }
+    async getComments() { this.notImplemented("get-comments"); }
+    async replyComment() { this.notImplemented("reply-comment"); }
+    async getMentions() { this.notImplemented("get-mentions"); }
+    async getHashtagMedia() { this.notImplemented("get-hashtag-media"); }
+    async getInsights() { this.notImplemented("get-insights"); }
+    async getConversations() { this.notImplemented("get-conversations"); }
+    async getMessages() { this.notImplemented("get-messages"); }
+    async getMessageThread() { this.notImplemented("get-message-thread"); }
+    async sendMessage() { this.notImplemented("send-message"); }
 }

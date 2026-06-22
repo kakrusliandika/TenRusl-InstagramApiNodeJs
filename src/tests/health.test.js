@@ -20,5 +20,22 @@ test('health, ready, live, and metrics endpoints work', async () => {
     assert.equal(jsonMetrics.response.status, 200);
     assertEnvelope(jsonMetrics.body, true);
     assert.ok(jsonMetrics.body.data.nodeVersion);
+
+    const capabilities = await requestJson(baseUrl, '/capabilities');
+    assert.equal(capabilities.response.status, 200);
+    assertEnvelope(capabilities.body, true);
+    assert.equal(capabilities.body.data.activeProvider, 'mock');
+    assert.equal(capabilities.body.data.provider.capabilities.dryRunWrites, true);
+    assert.ok(capabilities.body.data.supportedProviders.official);
+  });
+});
+
+test('public status page and favicon are served', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const page = await fetch(`${baseUrl}/`);
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get('content-type') || '', /text\/html/);
+    assert.match(await page.text(), /TenRusl Instagram API Gateway/);
+    assert.match(await (await fetch(`${baseUrl}/favicon.svg`)).text(), /<svg/);
   });
 });

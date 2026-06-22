@@ -28,6 +28,7 @@ File: `Dockerfile`, `.dockerignore`.
 Cocok untuk local staging.
 
 ```bash
+cp .env.example .env
 docker compose up --build
 ```
 
@@ -35,11 +36,11 @@ File: `docker-compose.yml`.
 
 ## Cloudflare
 
-Cocok sebagai edge proxy. Gunakan `deploy/cloudflare/worker.js` dan set `APP_BASE_URL` ke origin API.
+Cocok sebagai edge proxy. Gunakan `deploy/cloudflare/worker.js` dan set `ORIGIN_BASE_URL` ke origin API.
 
 ## GitHub Actions
 
-Cocok untuk CI. Copy `deploy/github/ci.yml` ke `.github/workflows/ci.yml`.
+Cocok untuk CI. File aktif: `.github/workflows/ci.yml`.
 
 ## Google Cloud
 
@@ -69,11 +70,11 @@ Cocok untuk deploy cepat Node.js. File: `railway.json`.
 
 ## Vercel
 
-Cocok untuk preview serverless. File: `deploy/vercel/vercel.json`.
+Cocok untuk preview serverless. File aktif: `vercel.json`.
 
 ## Netlify
 
-Cocok untuk serverless preview. File: `deploy/netlify/netlify.toml` dan `netlify/functions/api.js`.
+Cocok untuk serverless preview. File aktif: `netlify.toml` dan `netlify/functions/api.js`.
 
 ## VPS
 

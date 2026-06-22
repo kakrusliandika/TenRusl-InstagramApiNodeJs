@@ -7,6 +7,7 @@ Terima kasih ingin berkontribusi pada TenRusl Instagram API Gateway.
 - Default aman: mock provider, dry-run action, tanpa secret hardcoded.
 - Provider non-resmi harus terpisah dan tidak boleh melewati login, proteksi, rate-limit, atau kontrol akses.
 - Semua endpoint harus memakai response envelope standar.
+- Halaman statis di `public/` hanya boleh berisi informasi non-sensitif dan harus sinkron dengan versi `package.json`.
 - Tambahkan test saat menambah endpoint atau provider.
 
 ## Workflow

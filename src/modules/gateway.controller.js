@@ -5,8 +5,10 @@ import {
     validateCommentReplyBody,
     validateId,
     validateIdentifier,
+    validateHashtagQuery,
     validateLinkQuery,
     validateMessageBody,
+    normalizeCommentReplyTarget,
     validatePagination,
     validatePublishBody,
 } from "../utils/validation.js";
@@ -120,9 +122,9 @@ export function replyCommentController({ routeId = true } = {}) {
     return async (req, res) => {
         const provider = getInstagramProvider();
         const body = validateCommentReplyBody(req.body);
-        const id = routeId ? validateId(req.params.id) : body.id;
-        const data = await provider.replyComment(id, body);
-        return sendSuccess(res, data, { statusCode: 202, meta: meta(req, provider, { id, dryRun: true }) });
+        const target = normalizeCommentReplyTarget({ routeId: routeId ? req.params.id : null, body });
+        const data = await provider.replyComment(target, body);
+        return sendSuccess(res, data, { statusCode: 202, meta: meta(req, provider, { target, dryRun: true }) });
     };
 }
 
@@ -138,7 +140,7 @@ export function mentionsController() {
 export function hashtagMediaController() {
     return async (req, res) => {
         const provider = getInstagramProvider();
-        const query = { ...validatePagination(req.query), hashtag: req.query.hashtag || req.query.tag || "tenrusl" };
+        const query = validateHashtagQuery(req.query);
         const data = await provider.getHashtagMedia(query);
         return sendSuccess(res, data, { meta: meta(req, provider, { pagination: query }) });
     };

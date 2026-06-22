@@ -38,3 +38,8 @@ export const linkQuerySchema = z
     .refine((value) => value.link || value.url, {
         message: "Use query parameter link or url.",
     });
+
+export const hashtagQuerySchema = paginationSchema.extend({
+    hashtag: z.string().trim().min(1).max(128).optional(),
+    tag: z.string().trim().min(1).max(128).optional(),
+});

@@ -19,4 +19,5 @@ Laporkan issue secara privat kepada maintainer sebelum membuka detail publik.
 - Batasi `CORS_ORIGIN`.
 - Gunakan secret manager untuk token.
 - Pantau `/health`, `/ready`, `/live`, dan `/metrics`.
+- Halaman statis `/` hanya menampilkan status/link endpoint publik; jangan taruh secret atau data sensitif di `public/`.
 - Jalankan container sebagai non-root user.

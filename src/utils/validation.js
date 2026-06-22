@@ -1,13 +1,14 @@
 import { AppError, ERROR_CODES } from "./errors.js";
 import {
     identifierSchema,
+    hashtagQuerySchema,
     idSchema,
     linkQuerySchema,
-    paginationSchema,
     usernameSchema,
 } from "../schemas/common.schema.js";
 import { actionBodySchema } from "../schemas/action.schema.js";
-import { commentReplyBodySchema, messageBodySchema } from "../schemas/message.schema.js";
+import { commentReplyBodySchema } from "../schemas/comment.schema.js";
+import { messageBodySchema } from "../schemas/message.schema.js";
 import { collectionQuerySchema, publishBodySchema } from "../schemas/post.schema.js";
 import { parseInstagramUrl } from "./instagram-url.js";
 
@@ -87,5 +88,45 @@ export function validateCommentReplyBody(body = {}) {
     return {
         ...parsed,
         dryRun: parsed.dryRun !== false,
+    };
+}
+
+export function validateTargetedCommentReplyBody(body = {}) {
+    const parsed = validateCommentReplyBody(body);
+    if (parsed.id || parsed.link) return parsed;
+
+    throw new AppError("Comment reply body is invalid.", {
+        statusCode: 400,
+        code: ERROR_CODES.VALIDATION_ERROR,
+        details: {
+            formErrors: ["id or link is required."],
+            fieldErrors: {},
+        },
+    });
+}
+
+export function normalizeCommentReplyTarget({ routeId, body = {} } = {}) {
+    if (routeId) {
+        return { type: "id", id: validateId(routeId), source: "route" };
+    }
+
+    const parsed = validateTargetedCommentReplyBody(body);
+    if (parsed.id) {
+        return { type: "id", id: validateId(parsed.id), source: "body", priority: "id" };
+    }
+
+    return {
+        type: "link",
+        link: parseInstagramUrl(parsed.link, { allowStories: true }),
+        source: "body",
+    };
+}
+
+export function validateHashtagQuery(query = {}) {
+    const parsed = failFromZod(hashtagQuerySchema.safeParse(query), "Hashtag query is invalid.");
+    return {
+        ...parsed,
+        cursor: parsed.cursor ?? null,
+        hashtag: parsed.hashtag || parsed.tag || "tenrusl",
     };
 }

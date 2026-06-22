@@ -1,4 +1,6 @@
 import express from 'express';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { apiKeyMiddleware } from './middlewares/api-key.middleware.js';
@@ -12,45 +14,31 @@ import { router } from './routes/index.js';
 import { metricsMiddleware } from './services/metrics.service.js';
 import { successEnvelope } from './utils/response.js';
 import { sanitizeObject } from './utils/sanitize.js';
+import { validateIdentifier } from './utils/validation.js';
+
+const publicDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
 export function createApp() {
   const app = express();
 
-  app.set('trust proxy', 1);
+  app.set('trust proxy', env.trustProxy);
   app.use(requestIdMiddleware);
   app.use(metricsMiddleware);
   applySecurityMiddleware(app);
+  app.use(express.static(publicDir, { index: false, maxAge: env.isProduction ? '1h' : 0 }));
+  app.get('/', (_req, res) => {
+    return res.sendFile(join(publicDir, 'index.html'));
+  });
+  app.use(rateLimitMiddleware);
+  app.use(apiKeyMiddleware);
   app.use(express.json({ limit: env.bodyLimit, strict: true }));
   app.use(express.urlencoded({ extended: false, limit: env.bodyLimit }));
   app.use((req, _res, next) => {
     req.body = sanitizeObject(req.body);
+    const sanitizedQuery = sanitizeObject(req.query);
+    for (const key of Object.keys(req.query)) delete req.query[key];
+    Object.assign(req.query, sanitizedQuery);
     next();
-  });
-  app.use(rateLimitMiddleware);
-  app.use(apiKeyMiddleware);
-
-  app.get('/', (req, res) => {
-    const provider = getInstagramProvider();
-    return res.json(successEnvelope({
-      name: env.appName,
-      version: env.appVersion,
-      runtime: {
-        primary: 'Node.js 24 LTS',
-        compatibility: 'Node.js 22',
-        current: process.version,
-        module: 'ESM',
-        framework: 'Express.js'
-      },
-      provider: provider.status(),
-      endpoints: {
-        health: '/health',
-        ready: '/ready',
-        live: '/live',
-        metrics: '/metrics',
-        api: '/v1',
-        docs: 'README.md and docs/*.md'
-      }
-    }, { requestId: req.id }));
   });
 
   app.use(router);
@@ -58,7 +46,8 @@ export function createApp() {
   app.get('/api/v1/instagram/:identifier', async (req, res, next) => {
     try {
       const provider = getInstagramProvider();
-      const data = await provider.getProfile(req.params.identifier);
+      const identifier = validateIdentifier(req.params.identifier);
+      const data = await provider.getProfile(identifier.value);
       return res.json(successEnvelope(data, { requestId: req.id, provider: provider.status(), legacy: true }));
     } catch (error) {
       return next(error);

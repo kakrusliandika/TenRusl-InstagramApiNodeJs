@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { capabilitiesFor } from './capabilities.js';
 
 function stableId(prefix, seed) {
   return `${prefix}_${crypto.createHash('sha256').update(String(seed)).digest('hex').slice(0, 16)}`;
@@ -44,6 +45,7 @@ export class MockInstagramProvider {
       ready: this.ready,
       safeMode: this.safeMode,
       officialConfigured: false,
+      capabilities: capabilitiesFor(this.name),
       writeMode: 'dry-run-first',
       generatedAt: now()
     };
@@ -211,11 +213,13 @@ export class MockInstagramProvider {
     });
   }
 
-  async replyComment(id, body = {}) {
+  async replyComment(target, body = {}) {
     return this.base('comments', 'reply-comment', {
       accepted: true,
       dryRun: true,
-      commentId: id || body.id || null,
+      target,
+      commentId: target?.id || body.id || null,
+      link: target?.link || null,
       text: body.text,
       result: { status: 'dry-run' }
     });

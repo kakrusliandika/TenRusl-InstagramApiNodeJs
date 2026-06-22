@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { asyncHandler } from '../utils/async-handler.js';
+import { sanitizeText } from '../utils/sanitize.js';
 import {
   accountController,
   actionController,
@@ -22,6 +23,13 @@ import {
 } from '../modules/gateway.controller.js';
 
 export const v1Router = Router();
+
+for (const paramName of ['identifier', 'id']) {
+  v1Router.param(paramName, (req, _res, next, value, name) => {
+    req.params[name] = sanitizeText(value, { maxLength: 128 });
+    next();
+  });
+}
 
 // Contract-compatible routes requested by the production audit brief.
 v1Router.get('/get/accounts/:identifier', asyncHandler(accountController()));

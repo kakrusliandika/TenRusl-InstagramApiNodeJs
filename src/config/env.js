@@ -12,6 +12,8 @@ export const PROVIDERS = Object.freeze({
 const APP_VERSION = '4.0.0';
 const providerValues = Object.values(PROVIDERS);
 
+// Keep this module limited to variables consumed by the Express runtime.
+// Legacy APP_MODE/scraper/cache/Puppeteer flags are intentionally not read.
 function stringValue(name, fallback = '') {
   const raw = process.env[name];
   if (raw === undefined || raw === null || raw === '') return fallback;
@@ -38,9 +40,27 @@ function listValue(name, fallback = '') {
     .filter(Boolean);
 }
 
+function isValidUrl(value) {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function providerValue() {
   const requested = stringValue('IG_PROVIDER', PROVIDERS.MOCK).toLowerCase();
-  return providerValues.includes(requested) ? requested : PROVIDERS.MOCK;
+  if (providerValues.includes(requested)) return requested;
+  throw new Error(`IG_PROVIDER must be one of: ${providerValues.join(', ')}.`);
+}
+
+function trustProxyValue() {
+  const raw = stringValue('TRUST_PROXY', '1').toLowerCase();
+  if (['true', 'yes', 'on'].includes(raw)) return true;
+  if (['false', 'no', 'off'].includes(raw)) return false;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : raw;
 }
 
 export const env = Object.freeze({
@@ -50,7 +70,7 @@ export const env = Object.freeze({
   isProduction: stringValue('NODE_ENV', 'development') === 'production',
   port: integerValue('PORT', 3000, { min: 1, max: 65535 }),
   host: stringValue('HOST', '0.0.0.0'),
-  baseUrl: stringValue('APP_BASE_URL', 'http://localhost:3000'),
+  trustProxy: trustProxyValue(),
   logLevel: stringValue('LOG_LEVEL', 'info'),
 
   igProvider: providerValue(),
@@ -65,10 +85,12 @@ export const env = Object.freeze({
   defaultLimit: integerValue('DEFAULT_LIMIT', 25, { min: 1, max: 100 }),
   maxLimit: integerValue('MAX_LIMIT', 100, { min: 1, max: 500 }),
 
+  providerRequestTimeoutMs: integerValue('PROVIDER_REQUEST_TIMEOUT_MS', 10_000, { min: 1_000, max: 60_000 }),
+
+  metaGraphBaseUrl: stringValue('META_GRAPH_BASE_URL', 'https://graph.facebook.com'),
   metaApiVersion: stringValue('META_API_VERSION', 'v23.0'),
   metaAccessToken: stringValue('META_ACCESS_TOKEN', ''),
   metaIgUserId: stringValue('META_IG_USER_ID', ''),
-  metaAppId: stringValue('META_APP_ID', ''),
 
   publicDataEnabled: booleanValue('PUBLIC_DATA_ENABLED', false),
   publicDataUpstreamUrl: stringValue('PUBLIC_DATA_UPSTREAM_URL', ''),
@@ -86,12 +108,16 @@ export function getEnvironmentWarnings() {
     warnings.push('API_KEY_ENABLED=true requires API_KEY with at least 16 characters.');
   }
 
-  if (env.igProvider === PROVIDERS.OFFICIAL && (!env.metaAccessToken || !env.metaIgUserId)) {
-    warnings.push('IG_PROVIDER=official is selected but META_ACCESS_TOKEN or META_IG_USER_ID is missing.');
+  if (env.igProvider === PROVIDERS.OFFICIAL && (!env.metaAccessToken || !env.metaIgUserId || !isValidUrl(env.metaGraphBaseUrl))) {
+    warnings.push('IG_PROVIDER=official is selected but META_GRAPH_BASE_URL, META_ACCESS_TOKEN, or META_IG_USER_ID is missing/invalid.');
   }
 
   if (env.igProvider === PROVIDERS.PUBLIC && !env.publicDataEnabled) {
-    warnings.push('IG_PROVIDER=public is selected but PUBLIC_DATA_ENABLED=false. Public adapter will stay in safe placeholder mode.');
+    warnings.push('IG_PROVIDER=public is selected but PUBLIC_DATA_ENABLED=false. Public adapter is disabled.');
+  }
+
+  if (env.igProvider === PROVIDERS.PUBLIC && env.publicDataEnabled && !isValidUrl(env.publicDataUpstreamUrl)) {
+    warnings.push('IG_PROVIDER=public is selected but PUBLIC_DATA_UPSTREAM_URL is missing or invalid.');
   }
 
   if (env.igProvider === PROVIDERS.AUTHORIZED && !env.authorizedProviderEnabled) {
