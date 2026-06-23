@@ -12,7 +12,16 @@ export class AuthorizedInstagramProvider {
         this.name = "authorized";
         this.mode = "authorized";
         this.safeMode = true;
-        this.ready = Boolean(this.config.authorizedProviderEnabled && this.config.authorizedSessionToken);
+        this.integrationImplemented = options.integrationImplemented === true;
+        this.configured = Boolean(
+            this.config.authorizedProviderEnabled
+            && this.config.authorizedSessionToken
+            && this.config.authorizedIntegrationReviewed
+        );
+        this.ready = Boolean(
+            this.configured
+            && this.integrationImplemented
+        );
     }
 
     status() {
@@ -22,6 +31,8 @@ export class AuthorizedInstagramProvider {
             ready: this.ready,
             safeMode: this.safeMode,
             enabled: this.config.authorizedProviderEnabled,
+            integrationReviewed: this.config.authorizedIntegrationReviewed,
+            integrationImplemented: this.integrationImplemented,
             capabilities: capabilitiesFor(this.name),
             implementation: "disabled-until-reviewed-integration-is-added",
             writeMode: "not-implemented",
@@ -29,8 +40,8 @@ export class AuthorizedInstagramProvider {
         };
     }
 
-    ensureEnabled() {
-        if (this.ready) return;
+    ensureConfigured() {
+        if (this.configured) return;
 
         throw new AppError(
             "Authorized provider is disabled. Enable it only for explicitly authorized data and provide AUTHORIZED_SESSION_TOKEN.",
@@ -39,14 +50,18 @@ export class AuthorizedInstagramProvider {
                 code: ERROR_CODES.PROVIDER_NOT_CONFIGURED,
                 details: {
                     provider: "authorized",
-                    required: ["AUTHORIZED_PROVIDER_ENABLED=true", "AUTHORIZED_SESSION_TOKEN"],
+                    required: [
+                        "AUTHORIZED_PROVIDER_ENABLED=true",
+                        "AUTHORIZED_SESSION_TOKEN",
+                        "AUTHORIZED_INTEGRATION_REVIEWED=true",
+                    ],
                 },
             }
         );
     }
 
     notImplemented(operation, details = {}) {
-        this.ensureEnabled();
+        this.ensureConfigured();
         throw new AppError(
             "Authorized provider operation is not implemented. Add a reviewed integration and explicit user consent before enabling production traffic.",
             {

@@ -2,25 +2,35 @@ runtime: nodejs22
 service: tenrusl-instagram-api
 entrypoint: node src/server.js
 
+# Templat aktif App Engine. Ganti nilai sementara rahasia atau pindahkan ke Secret Manager sebelum produksi.
+
 env_variables:
   NODE_ENV: production
   IG_PROVIDER: official
   PORT: "3000"
   BODY_LIMIT: 256kb
   API_KEY_ENABLED: "true"
-  API_KEY: replace_with_32_plus_character_random_secret
+  API_KEY: set_in_secret_manager_or_platform_config
+  METRICS_PUBLIC: "false"
+  CAPABILITIES_PUBLIC: "false"
   CORS_ORIGIN: https://your-domain.example
+  RATE_LIMIT_ENABLED: "true"
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX: "120"
   DEFAULT_LIMIT: "25"
   MAX_LIMIT: "100"
+  PROVIDER_REQUEST_TIMEOUT_MS: "10000"
   PUBLIC_DATA_ENABLED: "false"
   PUBLIC_DATA_UPSTREAM_URL: ""
   AUTHORIZED_PROVIDER_ENABLED: "false"
   AUTHORIZED_SESSION_TOKEN: ""
+  AUTHORIZED_INTEGRATION_REVIEWED: "false"
   GRACEFUL_SHUTDOWN_MS: "10000"
-  # Required when IG_PROVIDER=official. Prefer a platform secret manager for real values.
+  # Wajib saat IG_PROVIDER=official. Utamakan pengelola rahasia platform untuk nilai asli.
+  META_GRAPH_BASE_URL: https://graph.facebook.com
   META_API_VERSION: v23.0
-  META_ACCESS_TOKEN: replace_with_meta_access_token
-  META_IG_USER_ID: replace_with_instagram_business_or_creator_user_id
+  META_ACCESS_TOKEN: set_in_secret_manager_or_platform_config
+  META_IG_USER_ID: set_in_secret_manager_or_platform_config
 
 automatic_scaling:
   min_instances: 0

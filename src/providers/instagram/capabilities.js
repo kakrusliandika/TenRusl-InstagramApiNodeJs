@@ -7,7 +7,10 @@ export const PROVIDER_CAPABILITIES = Object.freeze({
     publishMedia: false,
     writeActions: false,
     liveMessaging: false,
-    dryRunWrites: true
+    dryRunWrites: true,
+    officialApiOnly: false,
+    requiresCompliantUpstream: false,
+    requiresReviewedIntegration: false
   }),
   official: Object.freeze({
     readProfile: true,
@@ -17,7 +20,10 @@ export const PROVIDER_CAPABILITIES = Object.freeze({
     publishMedia: false,
     writeActions: false,
     liveMessaging: false,
-    dryRunWrites: false
+    dryRunWrites: false,
+    officialApiOnly: true,
+    requiresCompliantUpstream: false,
+    requiresReviewedIntegration: false
   }),
   public: Object.freeze({
     readProfile: true,
@@ -27,7 +33,10 @@ export const PROVIDER_CAPABILITIES = Object.freeze({
     publishMedia: false,
     writeActions: false,
     liveMessaging: false,
-    dryRunWrites: false
+    dryRunWrites: false,
+    officialApiOnly: false,
+    requiresCompliantUpstream: true,
+    requiresReviewedIntegration: false
   }),
   authorized: Object.freeze({
     readProfile: false,
@@ -37,7 +46,10 @@ export const PROVIDER_CAPABILITIES = Object.freeze({
     publishMedia: false,
     writeActions: false,
     liveMessaging: false,
-    dryRunWrites: false
+    dryRunWrites: false,
+    officialApiOnly: false,
+    requiresCompliantUpstream: false,
+    requiresReviewedIntegration: true
   })
 });
 

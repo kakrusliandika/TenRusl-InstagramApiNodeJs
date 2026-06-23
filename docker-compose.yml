@@ -1,12 +1,29 @@
 services:
   instagram-api:
     build: .
-    image: tenrusl-instagram-api:production
+    image: tenrusl-instagram-api:local-staging
     env_file:
       - .env
     environment:
-      NODE_ENV: production
-      IG_PROVIDER: mock
+      NODE_ENV: ${NODE_ENV:-production}
+      IG_PROVIDER: ${IG_PROVIDER:-mock}
+      API_KEY_ENABLED: ${API_KEY_ENABLED:-false}
+      API_KEY: ${API_KEY:-}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://127.0.0.1:3000}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-120}
+      BODY_LIMIT: ${BODY_LIMIT:-256kb}
+      PROVIDER_REQUEST_TIMEOUT_MS: ${PROVIDER_REQUEST_TIMEOUT_MS:-10000}
+      META_GRAPH_BASE_URL: ${META_GRAPH_BASE_URL:-https://graph.facebook.com}
+      META_API_VERSION: ${META_API_VERSION:-v23.0}
+      META_ACCESS_TOKEN: ${META_ACCESS_TOKEN:-}
+      META_IG_USER_ID: ${META_IG_USER_ID:-}
+      PUBLIC_DATA_ENABLED: ${PUBLIC_DATA_ENABLED:-false}
+      PUBLIC_DATA_UPSTREAM_URL: ${PUBLIC_DATA_UPSTREAM_URL:-}
+      AUTHORIZED_PROVIDER_ENABLED: ${AUTHORIZED_PROVIDER_ENABLED:-false}
+      AUTHORIZED_SESSION_TOKEN: ${AUTHORIZED_SESSION_TOKEN:-}
+      AUTHORIZED_INTEGRATION_REVIEWED: ${AUTHORIZED_INTEGRATION_REVIEWED:-false}
     ports:
       - "3000:3000"
     healthcheck:

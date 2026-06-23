@@ -31,7 +31,7 @@ for (const paramName of ['identifier', 'id']) {
   });
 }
 
-// Contract-compatible routes requested by the production audit brief.
+// Rute yang kompatibel dengan kontrak dari audit produksi.
 v1Router.get('/get/accounts/:identifier', asyncHandler(accountController()));
 v1Router.get('/get/profiles/by-link', asyncHandler(profileByLinkController()));
 v1Router.get('/get/profiles/:identifier', asyncHandler(profileController()));
@@ -71,7 +71,7 @@ v1Router.get('/messages', asyncHandler(messagesController()));
 v1Router.get('/messages/:id', asyncHandler(messageThreadController()));
 v1Router.post('/messages/:id/send', asyncHandler(sendMessageController()));
 
-// Compatibility aliases for the earlier project route style. They are intentionally safe and map to the same provider boundary.
+// Alias kompatibilitas untuk gaya rute lama. Alias ini sengaja aman dan tetap menuju batas penyedia yang sama.
 v1Router.get('/accounts/:identifier', asyncHandler(accountController()));
 v1Router.get('/profiles/by-link', asyncHandler(profileByLinkController()));
 v1Router.get('/profiles/:identifier', asyncHandler(profileController()));

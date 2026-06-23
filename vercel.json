@@ -1,5 +1,19 @@
 {
     "version": 2,
     "builds": [{ "src": "src/serverless/vercel.js", "use": "@vercel/node" }],
-    "routes": [{ "src": "/(.*)", "dest": "src/serverless/vercel.js" }]
+    "routes": [{ "src": "/(.*)", "dest": "src/serverless/vercel.js" }],
+    "env": {
+        "NODE_ENV": "production",
+        "IG_PROVIDER": "mock",
+        "API_KEY_ENABLED": "false",
+        "CORS_ORIGIN": "https://your-preview-domain.example",
+        "RATE_LIMIT_ENABLED": "true",
+        "RATE_LIMIT_WINDOW_MS": "60000",
+        "RATE_LIMIT_MAX": "120",
+        "BODY_LIMIT": "256kb",
+        "PROVIDER_REQUEST_TIMEOUT_MS": "10000",
+        "PUBLIC_DATA_ENABLED": "false",
+        "AUTHORIZED_PROVIDER_ENABLED": "false",
+        "AUTHORIZED_INTEGRATION_REVIEWED": "false"
+    }
 }

@@ -1,4 +1,6 @@
-# Hybrid Multi-Cloud
+# Hybrid Multi-Cloud Template
+
+This is an optional architecture example, not an active deployment config.
 
 Cocok saat API gateway harus tetap hidup lintas region atau lintas penyedia cloud. Gunakan satu image container yang sama, health check `/ready`, DNS failover, dan secret manager per platform.
 

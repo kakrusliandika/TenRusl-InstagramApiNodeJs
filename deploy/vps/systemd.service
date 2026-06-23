@@ -1,3 +1,4 @@
+# Templat: ganti WorkingDirectory, User, env, dan injeksi rahasia sebelum dipakai di produksi.
 [Unit]
 Description=TenRusl Instagram API Gateway
 After=network.target
@@ -7,6 +8,17 @@ Type=simple
 WorkingDirectory=/opt/tenrusl-instagram-api
 Environment=NODE_ENV=production
 Environment=IG_PROVIDER=mock
+Environment=API_KEY_ENABLED=true
+Environment=METRICS_PUBLIC=false
+Environment=CAPABILITIES_PUBLIC=false
+Environment=CORS_ORIGIN=https://your-domain.example
+Environment=RATE_LIMIT_ENABLED=true
+Environment=RATE_LIMIT_WINDOW_MS=60000
+Environment=RATE_LIMIT_MAX=120
+Environment=BODY_LIMIT=256kb
+Environment=PROVIDER_REQUEST_TIMEOUT_MS=10000
+# Simpan API_KEY, META_ACCESS_TOKEN, META_IG_USER_ID, dan rahasia lain di EnvironmentFile yang dikelola di luar git.
+EnvironmentFile=-/etc/tenrusl-instagram-api/secrets.env
 ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=5

@@ -12,8 +12,8 @@ export const PROVIDERS = Object.freeze({
 const APP_VERSION = '4.0.0';
 const providerValues = Object.values(PROVIDERS);
 
-// Keep this module limited to variables consumed by the Express runtime.
-// Legacy APP_MODE/scraper/cache/Puppeteer flags are intentionally not read.
+// Batasi modul ini hanya untuk variabel yang dipakai waktu jalan Express.
+// Flag warisan APP_MODE/scraper/cache/Puppeteer sengaja tidak dibaca.
 function stringValue(name, fallback = '') {
   const raw = process.env[name];
   if (raw === undefined || raw === null || raw === '') return fallback;
@@ -42,11 +42,19 @@ function listValue(name, fallback = '') {
 
 function isValidUrl(value) {
   try {
-    new URL(value);
-    return true;
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) && !url.username && !url.password;
   } catch {
     return false;
   }
+}
+
+function isValidMetaApiVersion(value) {
+  return /^v\d+\.\d+$/.test(String(value || ''));
+}
+
+function isValidMetaIgUserId(value) {
+  return /^[A-Za-z0-9_:-]{2,128}$/.test(String(value || ''));
 }
 
 function providerValue() {
@@ -78,7 +86,10 @@ export const env = Object.freeze({
   bodyLimit: stringValue('BODY_LIMIT', '256kb'),
   apiKeyEnabled: booleanValue('API_KEY_ENABLED', false),
   apiKey: stringValue('API_KEY', ''),
+  metricsPublic: booleanValue('METRICS_PUBLIC', false),
+  capabilitiesPublic: booleanValue('CAPABILITIES_PUBLIC', false),
 
+  rateLimitEnabled: booleanValue('RATE_LIMIT_ENABLED', true),
   rateLimitWindowMs: integerValue('RATE_LIMIT_WINDOW_MS', 60_000, { min: 1_000, max: 3_600_000 }),
   rateLimitMax: integerValue('RATE_LIMIT_MAX', 120, { min: 1, max: 100_000 }),
 
@@ -97,6 +108,7 @@ export const env = Object.freeze({
 
   authorizedProviderEnabled: booleanValue('AUTHORIZED_PROVIDER_ENABLED', false),
   authorizedSessionToken: stringValue('AUTHORIZED_SESSION_TOKEN', ''),
+  authorizedIntegrationReviewed: booleanValue('AUTHORIZED_INTEGRATION_REVIEWED', false),
 
   gracefulShutdownMs: integerValue('GRACEFUL_SHUTDOWN_MS', 10_000, { min: 1_000, max: 60_000 })
 });
@@ -108,8 +120,20 @@ export function getEnvironmentWarnings() {
     warnings.push('API_KEY_ENABLED=true requires API_KEY with at least 16 characters.');
   }
 
-  if (env.igProvider === PROVIDERS.OFFICIAL && (!env.metaAccessToken || !env.metaIgUserId || !isValidUrl(env.metaGraphBaseUrl))) {
-    warnings.push('IG_PROVIDER=official is selected but META_GRAPH_BASE_URL, META_ACCESS_TOKEN, or META_IG_USER_ID is missing/invalid.');
+  if (env.isProduction && env.metricsPublic) {
+    warnings.push('METRICS_PUBLIC=true exposes operational metrics in production.');
+  }
+
+  if (env.isProduction && env.capabilitiesPublic) {
+    warnings.push('CAPABILITIES_PUBLIC=true exposes provider capability details in production.');
+  }
+
+  if (env.isProduction && !env.rateLimitEnabled) {
+    warnings.push('RATE_LIMIT_ENABLED=false is ignored in production. Rate limiting remains enforced.');
+  }
+
+  if (env.igProvider === PROVIDERS.OFFICIAL && (!env.metaAccessToken || !isValidMetaIgUserId(env.metaIgUserId) || !isValidUrl(env.metaGraphBaseUrl) || !isValidMetaApiVersion(env.metaApiVersion))) {
+    warnings.push('IG_PROVIDER=official is selected but META_GRAPH_BASE_URL, META_API_VERSION, META_ACCESS_TOKEN, or META_IG_USER_ID is missing/invalid.');
   }
 
   if (env.igProvider === PROVIDERS.PUBLIC && !env.publicDataEnabled) {
@@ -124,5 +148,19 @@ export function getEnvironmentWarnings() {
     warnings.push('IG_PROVIDER=authorized is selected but AUTHORIZED_PROVIDER_ENABLED=false. Authorized adapter remains disabled by default.');
   }
 
+  if (env.igProvider === PROVIDERS.AUTHORIZED && env.authorizedProviderEnabled && !env.authorizedIntegrationReviewed) {
+    warnings.push('IG_PROVIDER=authorized is selected but AUTHORIZED_INTEGRATION_REVIEWED=false. Authorized adapter is not production-ready.');
+  }
+
+  if (env.igProvider === PROVIDERS.AUTHORIZED && env.authorizedProviderEnabled && !env.authorizedSessionToken) {
+    warnings.push('IG_PROVIDER=authorized is selected but AUTHORIZED_SESSION_TOKEN is missing.');
+  }
+
   return warnings;
+}
+
+export function isRuntimeReady({ providerStatus, warnings = getEnvironmentWarnings() } = {}) {
+  const status = providerStatus || {};
+  if (env.igProvider === PROVIDERS.MOCK) return status.ready === true;
+  return status.ready === true && warnings.length === 0;
 }

@@ -8,10 +8,21 @@ function now() {
 
 function validUrl(value) {
     try {
-        return new URL(value);
+        const url = new URL(value);
+        if (!["http:", "https:"].includes(url.protocol)) return null;
+        if (url.username || url.password) return null;
+        return url;
     } catch {
         return null;
     }
+}
+
+function validMetaApiVersion(value) {
+    return /^v\d+\.\d+$/.test(String(value || ""));
+}
+
+function validMetaIgUserId(value) {
+    return /^[A-Za-z0-9_:-]{2,128}$/.test(String(value || ""));
 }
 
 function appendPath(baseUrl, path) {
@@ -28,7 +39,14 @@ export class OfficialInstagramProvider {
         this.mode = "official";
         this.safeMode = true;
         this.graphBaseUrl = validUrl(this.config.metaGraphBaseUrl);
-        this.ready = Boolean(this.graphBaseUrl && this.config.metaAccessToken && this.config.metaIgUserId);
+        this.metaApiVersionValid = validMetaApiVersion(this.config.metaApiVersion);
+        this.metaIgUserIdValid = validMetaIgUserId(this.config.metaIgUserId);
+        this.ready = Boolean(
+            this.graphBaseUrl
+            && this.metaApiVersionValid
+            && this.config.metaAccessToken
+            && this.metaIgUserIdValid
+        );
     }
 
     status() {
@@ -39,6 +57,8 @@ export class OfficialInstagramProvider {
             safeMode: this.safeMode,
             officialConfigured: this.ready,
             metaApiVersion: this.config.metaApiVersion,
+            metaApiVersionValid: this.metaApiVersionValid,
+            metaIgUserIdConfigured: this.metaIgUserIdValid,
             graphBaseUrlConfigured: Boolean(this.graphBaseUrl),
             capabilities: capabilitiesFor(this.name),
             implementation: "partial-meta-graph-read-boundary",
@@ -51,13 +71,14 @@ export class OfficialInstagramProvider {
         if (this.ready) return;
 
         throw new AppError(
-            "Official Instagram provider is not configured. Set META_GRAPH_BASE_URL, META_ACCESS_TOKEN, and META_IG_USER_ID.",
+            "Official Instagram provider is not configured. Set valid META_GRAPH_BASE_URL, META_API_VERSION, META_ACCESS_TOKEN, and META_IG_USER_ID.",
             {
                 statusCode: 503,
                 code: ERROR_CODES.PROVIDER_NOT_CONFIGURED,
                 details: {
                     provider: "official",
-                    required: ["META_GRAPH_BASE_URL", "META_ACCESS_TOKEN", "META_IG_USER_ID"],
+                    required: ["META_GRAPH_BASE_URL", "META_API_VERSION", "META_ACCESS_TOKEN", "META_IG_USER_ID"],
+                    validMetaApiVersion: "v<major>.<minor>",
                 },
             }
         );
@@ -81,14 +102,17 @@ export class OfficialInstagramProvider {
         for (const [key, value] of Object.entries(searchParams)) {
             if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, String(value));
         }
-        url.searchParams.set("access_token", this.config.metaAccessToken);
 
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), this.config.providerRequestTimeoutMs);
 
         let response;
         try {
-            response = await fetch(url, { method: "GET", signal: controller.signal });
+            response = await fetch(url, {
+                method: "GET",
+                headers: { authorization: `Bearer ${this.config.metaAccessToken}` },
+                signal: controller.signal,
+            });
         } catch (error) {
             throw new AppError("Meta Graph API request failed before a response was received.", {
                 statusCode: error.name === "AbortError" ? 504 : 502,

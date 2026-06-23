@@ -13,12 +13,21 @@ const server = app.listen(env.port, env.host, () => {
   });
 });
 
+let shuttingDown = false;
+
 function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
   logger.info('Graceful shutdown requested.', { signal });
   const timeout = setTimeout(() => {
     logger.error('Graceful shutdown timeout reached. Forcing exit.', { signal });
+    server.closeAllConnections?.();
     process.exit(1);
   }, env.gracefulShutdownMs);
+  timeout.unref?.();
+
+  server.closeIdleConnections?.();
 
   server.close((error) => {
     clearTimeout(timeout);

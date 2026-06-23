@@ -1,7 +1,7 @@
 {
   "name": "tenrusl-instagram-api-nodejs",
   "version": "4.0.0",
-  "description": "Production-ready Instagram API Gateway contract for Node.js 24 LTS and Node.js 22 compatibility with safe provider adapters, Express, health probes, metrics, tests, and multi-platform deployment templates.",
+  "description": "Production-ready Express API gateway skeleton and mock Instagram contract with explicit provider readiness boundaries, health probes, metrics, tests, and deployment templates.",
   "type": "module",
   "main": "src/server.js",
   "engines": {
@@ -14,7 +14,8 @@
     "check": "node --check src/server.js",
     "test": "node --test",
     "doctor": "node scripts/doctor.js",
-    "lint": "node scripts/lint-basic.js"
+    "lint": "node scripts/lint-basic.js",
+    "verify": "npm run check && npm run lint && npm test && npm run doctor"
   },
   "keywords": [
     "instagram",

@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
 import { createApp } from "../app.js";
+import { startTestServer } from "./server-helper.js";
 
 export async function withServer(testFn) {
     const app = createApp();
-    const server = app.listen(0);
-    await new Promise((resolve) => server.once("listening", resolve));
-    const { port } = server.address();
-    const baseUrl = `http://127.0.0.1:${port}`;
+    const { server, baseUrl } = await startTestServer(app);
 
     try {
         await testFn({ baseUrl });

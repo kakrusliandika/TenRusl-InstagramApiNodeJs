@@ -8,6 +8,40 @@ services:
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
-        value: production
+        value: "production"
       - key: IG_PROVIDER
-        value: mock
+        value: "mock"
+      - key: API_KEY_ENABLED
+        value: "false"
+      - key: API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        value: "https://your-domain.example"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX
+        value: "120"
+      - key: BODY_LIMIT
+        value: "256kb"
+      - key: PROVIDER_REQUEST_TIMEOUT_MS
+        value: "10000"
+      - key: META_GRAPH_BASE_URL
+        value: "https://graph.facebook.com"
+      - key: META_API_VERSION
+        value: "v23.0"
+      - key: META_ACCESS_TOKEN
+        sync: false
+      - key: META_IG_USER_ID
+        sync: false
+      - key: PUBLIC_DATA_ENABLED
+        value: "false"
+      - key: PUBLIC_DATA_UPSTREAM_URL
+        sync: false
+      - key: AUTHORIZED_PROVIDER_ENABLED
+        value: "false"
+      - key: AUTHORIZED_SESSION_TOKEN
+        sync: false
+      - key: AUTHORIZED_INTEGRATION_REVIEWED
+        value: "false"

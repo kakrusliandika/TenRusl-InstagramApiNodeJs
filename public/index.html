@@ -6,28 +6,134 @@
     <title>TenRusl Instagram API Gateway v4.0.0</title>
     <link rel="icon" href="/favicon.svg" />
     <style>
-      body { font-family: system-ui, sans-serif; margin: 0; padding: 48px; background: #0b1020; color: #f8fafc; }
-      main { max-width: 900px; margin: auto; }
-      code { background: #111827; padding: 2px 6px; border-radius: 6px; }
-      a { color: #93c5fd; }
-      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
-      .card { border: 1px solid #1f2937; background: #111827; padding: 16px; border-radius: 14px; }
-      .meta { color: #cbd5e1; }
+      :root {
+        color-scheme: dark;
+        --bg: #0b1020;
+        --panel: #111827;
+        --panel-2: #0f172a;
+        --border: #253044;
+        --text: #f8fafc;
+        --muted: #cbd5e1;
+        --link: #93c5fd;
+        --ok: #22c55e;
+        --warn: #f59e0b;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+      }
+      main {
+        width: min(1080px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 40px 0;
+      }
+      h1 { margin: 0 0 8px; font-size: 32px; line-height: 1.15; }
+      h2 { margin: 32px 0 12px; font-size: 18px; }
+      p { color: var(--muted); line-height: 1.6; }
+      a { color: var(--link); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code {
+        display: inline-block;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      pre {
+        overflow-x: auto;
+        background: var(--panel-2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px;
+        color: var(--muted);
+      }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+      .card { border: 1px solid var(--border); background: var(--panel); padding: 16px; border-radius: 8px; min-height: 104px; }
+      .card strong { display: block; margin-bottom: 8px; }
+      .meta { margin-bottom: 20px; }
+      .status { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
+      .pill { border: 1px solid var(--border); background: var(--panel); border-radius: 999px; padding: 8px 12px; color: var(--muted); }
+      .pill.ok { color: var(--ok); }
+      .pill.warn { color: var(--warn); }
+      .note { border-left: 3px solid var(--border); padding-left: 12px; }
     </style>
   </head>
   <body>
     <main>
       <h1>TenRusl Instagram API Gateway</h1>
-      <p class="meta">Version 4.0.0. Express ESM API gateway with mock, official, public, and authorized provider boundaries.</p>
-      <div class="grid">
-        <div class="card"><strong>Health</strong><br /><code>/health</code></div>
-        <div class="card"><strong>Ready</strong><br /><code>/ready</code></div>
-        <div class="card"><strong>Live</strong><br /><code>/live</code></div>
-        <div class="card"><strong>Metrics</strong><br /><code>/metrics</code></div>
-        <div class="card"><strong>Capabilities</strong><br /><code>/capabilities</code></div>
-        <div class="card"><strong>V1 API</strong><br /><code>/v1</code></div>
-        <div class="card"><strong>Profile</strong><br /><code>/v1/get/profiles/:identifier</code></div>
+      <p class="meta">Version 4.0.0. Express ESM API gateway with explicit mock, official, public, and authorized provider boundaries.</p>
+
+      <div class="status" aria-live="polite">
+        <span id="health-status" class="pill">Health: checking</span>
+        <span id="ready-status" class="pill">Ready: checking</span>
+        <span id="provider-status" class="pill">Provider: checking</span>
       </div>
+
+      <h2>🚀 Quick Links</h2>
+      <div class="grid">
+        <a class="card" href="/health"><strong>Health</strong><code>GET /health</code><p>Service status.</p></a>
+        <a class="card" href="/ready"><strong>Ready</strong><code>GET /ready</code><p>Readiness and provider warnings.</p></a>
+        <a class="card" href="/live"><strong>Live</strong><code>GET /live</code><p>Liveness probe.</p></a>
+        <a class="card" href="/capabilities"><strong>Capabilities</strong><code>GET /capabilities</code><p>Provider mode and capability map.</p></a>
+        <a class="card" href="/metrics?format=json"><strong>Metrics JSON</strong><code>GET /metrics?format=json</code><p>Operational metrics as JSON.</p></a>
+        <a class="card" href="/v1/get/profiles/tenrusl"><strong>Profile</strong><code>GET /v1/get/profiles/tenrusl</code><p>Mock profile read.</p></a>
+      </div>
+
+      <h2>🧩 Provider Modes</h2>
+      <div class="grid">
+        <div class="card"><strong>mock</strong><p>Safe deterministic local/CI/preview provider. Writes are dry-run.</p></div>
+        <div class="card"><strong>official</strong><p>Partial Meta Graph API boundary for supported account/profile/insight reads.</p></div>
+        <div class="card"><strong>public</strong><p>Read-only boundary for a compliant public-data upstream you control.</p></div>
+        <div class="card"><strong>authorized</strong><p>Disabled by default; live operations require reviewed consent-based integration.</p></div>
+      </div>
+
+      <h2>📌 Useful Requests</h2>
+      <pre><code>curl http://localhost:3000/health
+curl http://localhost:3000/ready
+curl http://localhost:3000/capabilities
+curl http://localhost:3000/v1/get/profiles/tenrusl
+curl "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"</code></pre>
+
+      <div class="grid">
+        <div class="card"><strong>Comment reply dry-run</strong><code>POST /v1/comments/reply</code><p>Body accepts `id` or `link`, plus `text` and `dryRun`.</p></div>
+        <div class="card"><strong>Publish dry-run</strong><code>POST /v1/publish/media</code><p>Mock provider returns a dry-run response and does not publish live media.</p></div>
+        <div class="card"><strong>Repository docs</strong><code>README.md</code><br /><code>docs/API.md</code><br /><code>docs/ENVIRONMENT.md</code><p>Detailed docs are kept in the repository, not exposed through this status page.</p></div>
+      </div>
+
+      <p class="note">🛡️ This page does not render secrets, API keys, tokens, sessions, request headers, or raw environment values. If <code>/capabilities</code> is protected, provider mode is intentionally hidden.</p>
     </main>
+
+    <script>
+      async function readJson(path) {
+        const response = await fetch(path, { headers: { accept: "application/json" } });
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+      }
+
+      function setStatus(id, text, state) {
+        const element = document.getElementById(id);
+        element.textContent = text;
+        element.classList.remove("ok", "warn");
+        if (state) element.classList.add(state);
+      }
+
+      readJson("/health")
+        .then((body) => setStatus("health-status", `Health: ${body.data?.status || "ok"}`, "ok"))
+        .catch(() => setStatus("health-status", "Health: unavailable", "warn"));
+
+      readJson("/ready")
+        .then((body) => setStatus("ready-status", `Ready: ${body.data?.status || "unknown"}`, body.data?.status === "ready" ? "ok" : "warn"))
+        .catch(() => setStatus("ready-status", "Ready: unavailable", "warn"));
+
+      readJson("/capabilities")
+        .then((body) => setStatus("provider-status", `Provider: ${body.data?.activeProvider || "unknown"}`, "ok"))
+        .catch(() => setStatus("provider-status", "Provider: protected", "warn"));
+    </script>
   </body>
 </html>

@@ -2,7 +2,7 @@ FROM node:24-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false
-COPY package*.json ./
+COPY --chown=node:node package*.json ./
 RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 COPY --chown=node:node . .
 USER node

@@ -52,6 +52,18 @@ const routes = [
   ['POST', '/v1/messages/thread_123/send', validMessageBody]
 ];
 
+const legacyRoutes = [
+  ['GET', '/v1/accounts/tenrusl'],
+  ['GET', '/v1/profiles/tenrusl'],
+  ['GET', '/v1/followers/tenrusl?limit=2'],
+  ['GET', '/v1/following/tenrusl?limit=2'],
+  ['GET', `/v1/posts/by-link?link=${instagramLink}`],
+  ['GET', '/v1/posts/post_123'],
+  ['GET', '/api/v1/get/profiles/tenrusl'],
+  ['GET', '/api/v1/accounts/tenrusl'],
+  ['GET', '/api/v1/instagram/tenrusl']
+];
+
 test('all required /v1 routes return non-404 standard envelopes in mock mode', async () => {
   await withServer(async ({ baseUrl }) => {
     for (const [method, path, body] of routes) {
@@ -63,6 +75,30 @@ test('all required /v1 routes return non-404 standard envelopes in mock mode', a
       assert.ok(result.response.status < 500, `${method} ${path}`);
       assertEnvelope(result.body, result.response.status < 400);
     }
+  });
+});
+
+test('legacy compatibility aliases return non-404 standard envelopes', async () => {
+  await withServer(async ({ baseUrl }) => {
+    for (const [method, path, body] of legacyRoutes) {
+      const result = await requestJson(baseUrl, path, {
+        method,
+        body: body ? JSON.stringify(body) : undefined
+      });
+      assert.notEqual(result.response.status, 404, `${method} ${path}`);
+      assert.ok(result.response.status < 500, `${method} ${path}`);
+      assertEnvelope(result.body, result.response.status < 400);
+    }
+  });
+});
+
+test('legacy instagram profile alias is explicitly marked in response metadata', async () => {
+  await withServer(async ({ baseUrl }) => {
+    const { response, body } = await requestJson(baseUrl, '/api/v1/instagram/tenrusl');
+
+    assert.equal(response.status, 200);
+    assertEnvelope(body, true);
+    assert.equal(body.meta.legacy, true);
   });
 });
 

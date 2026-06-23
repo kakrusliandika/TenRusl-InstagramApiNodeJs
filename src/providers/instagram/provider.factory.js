@@ -4,6 +4,7 @@ import { MockInstagramProvider } from "./mock.provider.js";
 import { OfficialInstagramProvider } from "./official.provider.js";
 import { PublicInstagramProvider } from "./public.provider.js";
 import { AppError, ERROR_CODES } from "../../utils/errors.js";
+import { assertInstagramProviderContract } from "./provider.contract.js";
 
 const providerCache = new Map();
 
@@ -20,18 +21,24 @@ export function normalizeProviderName(providerName = env.igProvider) {
 
 export function createInstagramProvider(providerName = env.igProvider) {
     const normalized = normalizeProviderName(providerName);
+    let provider;
     switch (normalized) {
         case PROVIDERS.OFFICIAL:
-            return new OfficialInstagramProvider();
+            provider = new OfficialInstagramProvider();
+            break;
         case PROVIDERS.PUBLIC:
-            return new PublicInstagramProvider();
+            provider = new PublicInstagramProvider();
+            break;
         case PROVIDERS.AUTHORIZED:
-            return new AuthorizedInstagramProvider();
+            provider = new AuthorizedInstagramProvider();
+            break;
         case PROVIDERS.MOCK:
-            return new MockInstagramProvider();
+            provider = new MockInstagramProvider();
+            break;
         default:
-            return new MockInstagramProvider();
+            provider = new MockInstagramProvider();
     }
+    return assertInstagramProviderContract(provider);
 }
 
 export function getInstagramProvider() {

@@ -8,7 +8,10 @@ function now() {
 
 function validUrl(value) {
     try {
-        return value ? new URL(value) : null;
+        const url = value ? new URL(value) : null;
+        if (!url || !["http:", "https:"].includes(url.protocol)) return null;
+        if (url.username || url.password) return null;
+        return url;
     } catch {
         return null;
     }

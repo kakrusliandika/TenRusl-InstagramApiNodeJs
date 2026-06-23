@@ -1,3 +1,4 @@
+# Templat: ganti citra, rahasia, batas sumber daya, dan IG_PROVIDER sebelum diterapkan ke produksi.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -17,16 +18,31 @@ spec:
                   image: tenrusl-instagram-api:production
                   ports:
                       - containerPort: 3000
-                  env:
-                      - name: NODE_ENV
-                        value: production
-                      - name: IG_PROVIDER
-                        value: mock
+                  envFrom:
+                      - configMapRef:
+                            name: tenrusl-instagram-api-config
+                      - secretRef:
+                            name: tenrusl-instagram-api-secrets
                   readinessProbe:
                       httpGet:
                           path: /ready
                           port: 3000
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 3
+                      failureThreshold: 3
                   livenessProbe:
                       httpGet:
                           path: /live
                           port: 3000
+                      initialDelaySeconds: 10
+                      periodSeconds: 20
+                      timeoutSeconds: 3
+                      failureThreshold: 3
+                  resources:
+                      requests:
+                          cpu: 100m
+                          memory: 128Mi
+                      limits:
+                          cpu: 500m
+                          memory: 512Mi

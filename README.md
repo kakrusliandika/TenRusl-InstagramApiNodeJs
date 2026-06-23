@@ -15,8 +15,8 @@ TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk
 - 🧭 Capability discovery: `/capabilities` exposes provider mode and safe operation support.
 - 🧪 Testable tanpa credential Instagram asli memakai `IG_PROVIDER=mock`.
 - ⚙️ ESM, Express.js, Node.js 24 LTS primary, Node.js 22 compatible.
-- 📦 Docker, Docker Compose, Kubernetes, VPS, Cloudflare proxy, GitHub Actions, Google Cloud, AWS, Heroku, Render, Railway, Vercel, Netlify, hybrid multi-cloud.
-- 🧭 Standard response envelope untuk sukses dan error.
+- 📦 Docker, Docker Compose, Kubernetes, VPS, Cloudflare proxy, GitHub Actions, Google Cloud, AWS, Heroku-style Procfile, Render, Railway, Vercel, Netlify, hybrid multi-cloud.
+- 🧾 Standard response envelope untuk sukses dan error.
 
 ## 🧩 Provider Mode
 
@@ -25,7 +25,9 @@ TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk
 | Mock | `IG_PROVIDER=mock` | Aktif | Local dev, demo, CI/CD, preview deploy | Semua endpoint testable, action selalu dry-run |
 | Official | `IG_PROVIDER=official` | Partial | Akun Business/Creator resmi | Boundary Meta Graph API untuk account/profile/insights milik `META_IG_USER_ID`; endpoint lain error eksplisit |
 | Public | `IG_PROVIDER=public` | Disabled | Upstream data publik yang compliant | Membutuhkan `PUBLIC_DATA_ENABLED=true` dan upstream milik sendiri; write/private endpoints ditolak |
-| Authorized | `IG_PROVIDER=authorized` | Disabled | Advanced owned/consented data | Belum production-ready; semua operasi live error eksplisit sampai integrasi reviewed ditambahkan |
+| Authorized | `IG_PROVIDER=authorized` | Disabled | Advanced owned/consented data | Belum production-ready; operasi live error eksplisit sampai integrasi reviewed ditambahkan |
+
+Detail provider ada di [`docs/PROVIDERS.md`](docs/PROVIDERS.md).
 
 ## 🧱 Arsitektur
 
@@ -58,7 +60,7 @@ flowchart TD
   F -->|public| PUBLIC[public.provider.js]
   F -->|authorized| AUTH[authorized.provider.js]
   OFFICIAL --> META[Meta / Instagram Graph API boundary]
-  PUBLIC --> PUB[Allowed public data boundary]
+  PUBLIC --> PUB[Allowed public data upstream]
   AUTH --> OWN[Owned or explicit-consent data boundary]
 ```
 
@@ -85,11 +87,24 @@ flowchart LR
   VPS --> OBS
 ```
 
+Detail arsitektur ada di [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ## ⚡ Quick Start Local
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.local.example .env
+npm run check
+npm test
+npm run doctor
+npm run dev
+```
+
+Windows PowerShell:
+
+```powershell
+npm install
+Copy-Item .env.local.example .env
 npm run check
 npm test
 npm run doctor
@@ -100,10 +115,11 @@ Buka:
 
 ```bash
 curl http://localhost:3000/health
+curl http://localhost:3000/ready
 curl http://localhost:3000/v1/get/profiles/tenrusl
 ```
 
-The root path `/` serves the static status page from `public/index.html`. API routes stay under `/health`, `/ready`, `/live`, `/metrics`, `/v1`, and `/api/v1`.
+The root path `/` serves the static status page from `public/index.html`. API routes stay under `/health`, `/ready`, `/live`, `/metrics`, `/capabilities`, `/v1`, and `/api/v1`.
 
 ## ⚙️ Setup Environment
 
@@ -115,11 +131,17 @@ PORT=3000
 HOST=0.0.0.0
 TRUST_PROXY=1
 IG_PROVIDER=mock
-CORS_ORIGIN=*
+CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
 API_KEY_ENABLED=false
+METRICS_PUBLIC=false
+CAPABILITIES_PUBLIC=false
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX=120
 BODY_LIMIT=256kb
 DEFAULT_LIMIT=25
 MAX_LIMIT=100
+PROVIDER_REQUEST_TIMEOUT_MS=10000
 GRACEFUL_SHUTDOWN_MS=10000
 ```
 
@@ -128,19 +150,19 @@ Official provider:
 ```env
 IG_PROVIDER=official
 META_GRAPH_BASE_URL=https://graph.facebook.com
-PROVIDER_REQUEST_TIMEOUT_MS=10000
+META_API_VERSION=v23.0
 META_ACCESS_TOKEN=your_meta_access_token
 META_IG_USER_ID=your_instagram_business_or_creator_user_id
-META_API_VERSION=v23.0
+PROVIDER_REQUEST_TIMEOUT_MS=10000
 ```
 
 Public provider safe mode:
 
 ```env
 IG_PROVIDER=public
-PROVIDER_REQUEST_TIMEOUT_MS=10000
 PUBLIC_DATA_ENABLED=true
 PUBLIC_DATA_UPSTREAM_URL=https://your-compliant-public-data-upstream.example
+PROVIDER_REQUEST_TIMEOUT_MS=10000
 ```
 
 Authorized provider advanced mode:
@@ -149,19 +171,21 @@ Authorized provider advanced mode:
 IG_PROVIDER=authorized
 AUTHORIZED_PROVIDER_ENABLED=false
 AUTHORIZED_SESSION_TOKEN=
+AUTHORIZED_INTEGRATION_REVIEWED=false
 ```
 
-Runtime env yang dibaca aplikasi ada di `src/config/env.js`. Legacy env `APP_MODE`, `SCRAPER_ENABLED`, `CACHE_ENABLED`, `PUPPETEER_HEADLESS`, dan `META_API_ENABLED` sudah deprecated dan tidak dipakai runtime Express.
+Runtime env yang dibaca aplikasi ada di `src/config/env.js`. Detail lengkap ada di [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md). Legacy env `APP_MODE`, `SCRAPER_ENABLED`, `CACHE_ENABLED`, `PUPPETEER_HEADLESS`, dan `META_API_ENABLED` sudah deprecated dan tidak dipakai runtime Express.
 
 ## 🧪 Run Development, Production, Test
 
 ```bash
-npm run dev        # node --watch src/server.js
-npm start          # production-style start
-npm run check      # syntax check entrypoint
-npm test           # node:test suite
-npm run doctor     # runtime and structure readiness
-npm run lint       # basic secret/unsafe-pattern scan
+npm run dev        # jalankan src/server.js dengan mode pantau
+npm start          # jalankan mode start bergaya produksi
+npm run check      # cek sintaks titik masuk
+npm run lint       # pemindaian dasar pola rahasia/tidak aman
+npm test           # jalankan rangkaian pengujian node:test
+npm run doctor     # cek kesiapan waktu jalan dan struktur
+npm run verify     # jalankan check + lint + test + doctor
 ```
 
 ## 🧾 Standard Response
@@ -236,6 +260,8 @@ Error:
 | Messaging | GET | `/v1/messages` | all/limit messages |
 | Messaging | GET | `/v1/messages/:id` | thread messages |
 | Messaging | POST | `/v1/messages/:id/send` | dry-run |
+
+Canonical API routes use `/v1`. Compatibility aliases under `/api/v1` and selected old `/v1/*` paths are documented in [`docs/API.md`](docs/API.md).
 
 ## 🧪 Curl Examples
 
@@ -339,6 +365,18 @@ curl -X POST http://localhost:3000/v1/messages/thread_123/send \
   -d '{"username":"tenrusl","text":"Hello","dryRun":true}'
 ```
 
+PowerShell:
+
+```powershell
+curl.exe http://localhost:3000/health
+curl.exe http://localhost:3000/ready
+curl.exe http://localhost:3000/capabilities
+curl.exe http://localhost:3000/v1/get/profiles/tenrusl
+curl.exe "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"
+curl.exe -X POST http://localhost:3000/v1/comments/reply -H "content-type: application/json" -d "{\"id\":\"comment_123\",\"text\":\"Thanks!\",\"dryRun\":true}"
+curl.exe -X POST http://localhost:3000/v1/publish/media -H "content-type: application/json" -d "{\"mediaUrl\":\"https://example.com/image.jpg\",\"mediaType\":\"IMAGE\",\"caption\":\"Dry run\",\"dryRun\":true}"
+```
+
 ## 🧭 Pagination
 
 Endpoint collection menerima:
@@ -350,7 +388,7 @@ Endpoint collection menerima:
 
 ## 🛡️ Dry-run Mode
 
-Semua action endpoint seperti follow, unfollow, publish, reply, dan send message default `dryRun: true`. Bahkan jika body mengirim `dryRun:false`, provider mock tetap tidak mengubah state Instagram. Live write operation harus diimplementasikan sendiri melalui adapter resmi yang sudah direview dan diberi izin eksplisit.
+Semua action endpoint seperti follow, unfollow, publish, reply, dan send message default `dryRun: true`. Provider `mock` tetap tidak mengubah state Instagram walaupun body mengirim `dryRun:false`. Live write operation harus diimplementasikan sendiri melalui adapter resmi yang sudah direview dan diberi izin eksplisit.
 
 ## 📊 Metrics
 
@@ -364,6 +402,16 @@ Semua action endpoint seperti follow, unfollow, publish, reply, dan send message
 - `tenrusl_provider_ready`
 
 Gunakan `GET /metrics?format=json` untuk output JSON.
+
+## 🔐 Rate Limit
+
+Internal rate limit aktif default:
+
+- `RATE_LIMIT_ENABLED=true`
+- `RATE_LIMIT_WINDOW_MS=60000`
+- `RATE_LIMIT_MAX=120`
+
+Response menyertakan `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`, dan `Retry-After` saat `429`. Untuk production multi-instance, gunakan Redis, API gateway quota, atau WAF-level distributed rate limit.
 
 ## ☁️ Deployment Tutorial Ringkas
 
@@ -385,6 +433,8 @@ docker build -t tenrusl-instagram-api:production .
 docker run --env-file .env -p 3000:3000 tenrusl-instagram-api:production
 ```
 
+Image memakai `npm ci --omit=dev`, healthcheck `/health`, dan non-root user.
+
 ### Docker Compose
 
 ```bash
@@ -394,21 +444,21 @@ docker compose up --build
 
 ### Cloudflare
 
-Gunakan Worker sebagai edge proxy ke origin container. File: `deploy/cloudflare/worker.js`.
+Gunakan Worker sebagai edge proxy ke origin container. File: `deploy/cloudflare/worker.js`. Worker membutuhkan `ORIGIN_BASE_URL`.
 
 ### GitHub Actions
 
-Gunakan workflow aktif di `.github/workflows/ci.yml`. Workflow menjalankan `check`, `test`, `doctor`, dan `lint` pada Node.js 22 dan 24.
+Gunakan workflow aktif di `.github/workflows/ci.yml`. Workflow menjalankan `check`, `lint`, `test`, dan `doctor` pada Node.js 22 dan 24.
 
 ### Google Cloud
 
-Gunakan Cloud Run dengan container image dan env `NODE_ENV=production`, `IG_PROVIDER=mock|official`. File: `deploy/google-cloud/cloud-run.yaml`.
+Gunakan Cloud Run dengan container image dan env `NODE_ENV=production`, `IG_PROVIDER=mock|official`. File: `deploy/google-cloud/cloud-run.yaml`. Root `app.yaml` tersedia untuk App Engine, dan `cloudbuild.yaml` untuk build image.
 
 ### AWS
 
 Gunakan App Runner atau ECS. File: `deploy/aws/apprunner.yaml`.
 
-### Heroku
+### Heroku-style Procfile
 
 Gunakan root `Procfile`:
 
@@ -418,11 +468,11 @@ heroku config:set NODE_ENV=production IG_PROVIDER=mock
 
 ### Render
 
-Gunakan `render.yaml`. Health check path: `/health`.
+Gunakan `render.yaml`. Health check path: `/health`. Secret harus diisi dari Render dashboard untuk field `sync:false`.
 
 ### Railway
 
-Gunakan `railway.json`. Start command: `npm start`.
+Gunakan `railway.json`. Start command: `npm start`. Runtime env diatur melalui Railway Variables.
 
 ### Vercel / Netlify
 
@@ -430,7 +480,7 @@ Cocok untuk serverless preview. Untuk traffic produksi stabil, container lebih d
 
 ### VPS
 
-Gunakan reverse proxy Nginx dan systemd. File: `deploy/vps/nginx.conf`, `deploy/vps/systemd.service`.
+Gunakan reverse proxy Nginx dan systemd. File: `deploy/vps/nginx.conf`, `deploy/vps/systemd.service`. Secret disimpan di environment file luar git.
 
 ### Kubernetes
 
@@ -438,11 +488,13 @@ Gunakan reverse proxy Nginx dan systemd. File: `deploy/vps/nginx.conf`, `deploy/
 kubectl apply -f deploy/kubernetes/
 ```
 
-Readiness: `/ready`, liveness: `/live`.
+Readiness: `/ready`, liveness: `/live`. Template Kubernetes sudah memiliki ConfigMap, Secret example, resource requests, dan resource limits.
 
 ### Hybrid Multi-Cloud
 
 Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge melakukan failover berdasarkan health check.
+
+Detail deployment ada di [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ## ✅ Release Checklist
 
@@ -450,32 +502,39 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 - `IG_PROVIDER` dipilih secara sadar: `mock`, `official`, `public`, atau `authorized`.
 - `API_KEY_ENABLED=true` dan `API_KEY` kuat untuk API publik, atau ada proteksi gateway upstream setara.
 - `CORS_ORIGIN` dibatasi ke domain production.
+- `RATE_LIMIT_ENABLED=true`; gunakan distributed limiter untuk multi-instance.
+- `METRICS_PUBLIC=false` dan `CAPABILITIES_PUBLIC=false` kecuali dilindungi upstream.
 - `npm run check`, `npm run lint`, `npm test`, dan `npm run doctor` lulus di CI.
 - Deployment target memakai config aktif yang benar: `Dockerfile`, `docker-compose.yml`, `.github/workflows/ci.yml`, `Procfile`, `render.yaml`, `railway.json`, `vercel.json`, atau `netlify.toml`.
 - Health check target memakai `/health`, readiness memakai `/ready`, dan liveness memakai `/live`.
-- `IG_PROVIDER=mock` tidak dipakai untuk production kecuali sengaja untuk preview/demo tanpa data live.
+- `IG_PROVIDER=mock` tidak dipakai untuk production live data kecuali sengaja untuk preview/demo tanpa data live.
 - Provider non-mock sudah diuji dengan env wajib dan batasan legal/compliance masing-masing.
 
 ## 🔐 Security Notes
 
-- Jangan expose `META_ACCESS_TOKEN`, `AUTHORIZED_SESSION_TOKEN`, atau API key.
+- Jangan expose `API_KEY`, `META_ACCESS_TOKEN`, `AUTHORIZED_SESSION_TOKEN`, atau secret provider lain.
 - Batasi `CORS_ORIGIN` di production.
 - Aktifkan `API_KEY_ENABLED=true` atau proteksi gateway upstream.
 - Simpan secret di secret manager platform.
 - Pantau `/metrics` dan logs JSON.
 - Jangan menambahkan bypass login, credential stuffing, anti-bot evasion, scraping agresif, atau penyimpanan password mentah.
 
+Detail security ada di [`docs/SECURITY.md`](docs/SECURITY.md).
+
 ## 🧯 Troubleshooting
 
 | Masalah | Solusi |
 |---|---|
-| `/ready` degraded | Periksa `IG_PROVIDER` dan env provider terkait |
+| Port `3000` sudah dipakai | Set `PORT=3001` di `.env`, lalu restart server |
+| `401 UNAUTHORIZED` | Jika `API_KEY_ENABLED=true`, kirim `x-api-key` atau `Authorization: Bearer <key>` |
+| `/ready` degraded atau `503` | Periksa `IG_PROVIDER` dan env provider terkait |
 | 400 username invalid | Username hanya huruf, angka, titik, underscore; tanpa titik ganda/trailing |
 | 400 link invalid | Gunakan link Instagram `p`, `reel`, `tv`, `stories`, atau profile |
-| 429 rate limit | Naikkan `RATE_LIMIT_MAX` atau tambah gateway-level quota |
-| Official provider not configured | Isi `META_GRAPH_BASE_URL`, `META_ACCESS_TOKEN`, dan `META_IG_USER_ID` |
+| 429 rate limit | Hormati `Retry-After`, gunakan backoff, atau naikkan `RATE_LIMIT_MAX` untuk local |
+| Official provider not configured | Isi `META_GRAPH_BASE_URL`, `META_API_VERSION`, `META_ACCESS_TOKEN`, dan `META_IG_USER_ID` |
 | Public provider disabled | Set `PUBLIC_DATA_ENABLED=true` dan `PUBLIC_DATA_UPSTREAM_URL` yang valid |
-| Authorized disabled | Set `AUTHORIZED_PROVIDER_ENABLED=true` dan `AUTHORIZED_SESSION_TOKEN`, lalu implementasikan integrasi reviewed sebelum production |
+| Authorized disabled | Set `AUTHORIZED_PROVIDER_ENABLED=true`, `AUTHORIZED_SESSION_TOKEN`, `AUTHORIZED_INTEGRATION_REVIEWED=true`, lalu implementasikan integrasi reviewed sebelum production |
+| CORS blocked | Set `CORS_ORIGIN` ke origin frontend, misalnya `http://localhost:5173,http://localhost:3000` |
 
 ## 📁 Folder Structure
 
@@ -486,7 +545,7 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 │   ├── server.js
 │   ├── config
 │   ├── routes
-│   ├── modules/gateway.controller.js
+│   ├── modules
 │   ├── providers/instagram
 │   ├── middlewares
 │   ├── schemas
@@ -494,7 +553,13 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 │   └── tests
 ├── docs
 ├── deploy
+├── public
+├── scripts
+├── netlify/functions
+├── .github/workflows
 ├── .env.example
+├── .env.local.example
+├── .env.production.example
 ├── Dockerfile
 ├── docker-compose.yml
 ├── package.json
@@ -503,6 +568,16 @@ Gunakan image yang sama lintas Kubernetes, Cloud Run, dan VPS fallback. DNS/edge
 ├── CONTRIBUTING.md
 └── LICENSE
 ```
+
+## 📚 Dokumentasi Detail
+
+- [`docs/API.md`](docs/API.md): endpoint detail, standard envelope, validation, dan legacy aliases.
+- [`docs/ENVIRONMENT.md`](docs/ENVIRONMENT.md): semua environment variable yang dibaca runtime.
+- [`docs/PROVIDERS.md`](docs/PROVIDERS.md): provider behavior, capability, dan production readiness.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): deployment matrix, env per platform, dan checklist.
+- [`docs/SECURITY.md`](docs/SECURITY.md): hardening, rate limit, API key, dan compliance.
+- [`SECURITY.md`](SECURITY.md): security policy.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.
 
 ## 🧬 Roadmap
 
@@ -521,17 +596,20 @@ Bisa. Gunakan `IG_PROVIDER=mock`.
 **Apakah action follow/unfollow benar-benar dieksekusi?**  
 Tidak secara default. Semua action dry-run untuk mencegah automation berisiko.
 
+**Apakah official provider sudah membuat semua endpoint live?**  
+Tidak. Provider `official` saat ini hanya partial boundary untuk Meta Graph API reads yang didukung.
+
 **Apakah public adapter melakukan scraping agresif?**  
 Tidak. Adapter public hanya boundary aman untuk integrasi data publik yang diizinkan.
 
 **Apakah authorized adapter menyimpan password?**  
-Tidak. Gunakan token/session yang dikelola secara aman oleh user dan secret manager.
+Tidak. Adapter ini disabled by default dan tidak menyimpan password mentah.
 
 ## 🤝 Contribution Guide
 
 1. Fork repository.
 2. Buat branch fitur.
-3. Jalankan `npm run check`, `npm test`, `npm run doctor`, `npm run lint`.
+3. Jalankan `npm run check`, `npm run lint`, `npm test`, dan `npm run doctor`.
 4. Tambahkan test untuk endpoint/provider baru.
 5. Jelaskan risiko compliance di pull request.
 

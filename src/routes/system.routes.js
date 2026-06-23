@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { env, getEnvironmentWarnings } from "../config/env.js";
+import { env, getEnvironmentWarnings, isRuntimeReady } from "../config/env.js";
 import { PROVIDER_CAPABILITIES, getInstagramProvider } from "../providers/instagram/index.js";
 import { getMetricsSnapshot, getPrometheusMetrics } from "../services/metrics.service.js";
 import { sendSuccess } from "../utils/response.js";
@@ -39,7 +39,7 @@ export function readyHandler(req, res) {
     const provider = getInstagramProvider();
     const warnings = getEnvironmentWarnings();
     const providerStatus = provider.status();
-    const ready = env.igProvider === "mock" || providerStatus.ready || warnings.length === 0;
+    const ready = isRuntimeReady({ providerStatus, warnings });
     const statusCode = ready ? 200 : 503;
     return sendSuccess(
         res,

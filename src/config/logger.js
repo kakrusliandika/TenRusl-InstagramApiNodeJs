@@ -1,16 +1,11 @@
 import { env } from "./env.js";
+import { redactSensitive } from "../utils/sanitize.js";
 
 const levelRank = { debug: 10, info: 20, warn: 30, error: 40, silent: 100 };
 const currentLevel = levelRank[env.logLevel] ?? levelRank.info;
 
 function redact(value) {
-    if (!value || typeof value !== "object") return value;
-    return JSON.parse(
-        JSON.stringify(value, (key, innerValue) => {
-            if (/token|secret|password|credential|session|key/i.test(key)) return "[REDACTED]";
-            return innerValue;
-        })
-    );
+    return redactSensitive(value);
 }
 
 function write(level, message, payload = {}) {

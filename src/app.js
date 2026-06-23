@@ -25,10 +25,6 @@ export function createApp() {
   app.use(requestIdMiddleware);
   app.use(metricsMiddleware);
   applySecurityMiddleware(app);
-  app.use(express.static(publicDir, { index: false, maxAge: env.isProduction ? '1h' : 0 }));
-  app.get('/', (_req, res) => {
-    return res.sendFile(join(publicDir, 'index.html'));
-  });
   app.use(rateLimitMiddleware);
   app.use(apiKeyMiddleware);
   app.use(express.json({ limit: env.bodyLimit, strict: true }));
@@ -41,8 +37,14 @@ export function createApp() {
     next();
   });
 
+  app.use(express.static(publicDir, { index: false, maxAge: env.isProduction ? '1h' : 0 }));
+  app.get('/', (_req, res) => {
+    return res.sendFile(join(publicDir, 'index.html'));
+  });
+
   app.use(router);
 
+  // Alias warisan single-profile dipertahankan untuk klien lama; rute kanonik adalah /v1/get/profiles/:identifier.
   app.get('/api/v1/instagram/:identifier', async (req, res, next) => {
     try {
       const provider = getInstagramProvider();

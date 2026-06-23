@@ -2,6 +2,7 @@ import { env } from '../config/env.js';
 import { logger } from '../config/logger.js';
 import { AppError, ERROR_CODES, isOperationalError } from '../utils/errors.js';
 import { sendError } from '../utils/response.js';
+import { redactSensitive } from '../utils/sanitize.js';
 
 export function errorMiddleware(error, req, res, _next) {
   const statusCode = Number(error.statusCode) || 500;
@@ -10,7 +11,7 @@ export function errorMiddleware(error, req, res, _next) {
     {
       statusCode,
       code: error.code || ERROR_CODES.INTERNAL_ERROR,
-      details: statusCode >= 500 && env.isProduction ? {} : (error.details || {})
+      details: statusCode >= 500 && env.isProduction ? {} : redactSensitive(error.details || {})
     }
   );
 

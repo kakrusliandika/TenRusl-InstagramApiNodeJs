@@ -2,7 +2,7 @@
 
 Base URL local: `http://localhost:3000`.
 
-All JSON endpoints use this envelope:
+All JSON API endpoints use this envelope. The static `/` page serves HTML, and `/metrics` serves Prometheus text unless `?format=json` is requested.
 
 ```json
 { "success": true, "data": {}, "meta": {}, "error": null }
@@ -14,6 +14,44 @@ Errors use:
 { "success": false, "data": null, "meta": {}, "error": { "code": "ERROR_CODE", "message": "Message", "details": {} } }
 ```
 
+## Quick Curl
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/ready
+curl http://localhost:3000/capabilities
+curl http://localhost:3000/v1/get/profiles/tenrusl
+curl "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"
+```
+
+Comment reply dry-run:
+
+```bash
+curl -X POST http://localhost:3000/v1/comments/reply \
+  -H "content-type: application/json" \
+  -d '{"id":"comment_123","text":"Local dry-run reply","dryRun":true}'
+```
+
+Publish dry-run:
+
+```bash
+curl -X POST http://localhost:3000/v1/publish/media \
+  -H "content-type: application/json" \
+  -d '{"mediaUrl":"https://example.com/image.jpg","mediaType":"IMAGE","caption":"Dry run only","dryRun":true}'
+```
+
+PowerShell:
+
+```powershell
+curl.exe http://localhost:3000/health
+curl.exe http://localhost:3000/ready
+curl.exe http://localhost:3000/capabilities
+curl.exe http://localhost:3000/v1/get/profiles/tenrusl
+curl.exe "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"
+curl.exe -X POST http://localhost:3000/v1/comments/reply -H "content-type: application/json" -d "{\"id\":\"comment_123\",\"text\":\"Local dry-run reply\",\"dryRun\":true}"
+curl.exe -X POST http://localhost:3000/v1/publish/media -H "content-type: application/json" -d "{\"mediaUrl\":\"https://example.com/image.jpg\",\"mediaType\":\"IMAGE\",\"caption\":\"Dry run only\",\"dryRun\":true}"
+```
+
 ## System
 
 | Method | Path | Description |
@@ -22,6 +60,25 @@ Errors use:
 | GET | `/ready` | Readiness and provider configuration warnings. |
 | GET | `/live` | Liveness probe. |
 | GET | `/metrics` | Prometheus-style metrics. Add `?format=json` for JSON. |
+| GET | `/capabilities` | Active provider and safe operation capabilities. |
+
+## Official and Legacy Routes
+
+Canonical API routes use `/v1`. The `/v1/get/...` read routes are the official account, profile, relation, and media contract.
+
+Legacy aliases are retained for existing clients and return the same standard JSON envelope:
+
+| Legacy path | Replacement |
+|---|---|
+| `/api/v1/*` | `/v1/*` |
+| `/api/v1/instagram/:identifier` | `/v1/get/profiles/:identifier` |
+| `/v1/accounts/:identifier` | `/v1/get/accounts/:identifier` |
+| `/v1/profiles/by-link` | `/v1/get/profiles/by-link` |
+| `/v1/profiles/:identifier` | `/v1/get/profiles/:identifier` |
+| `/v1/followers/:identifier` | `/v1/get/followers/:identifier` |
+| `/v1/following/:identifier` | `/v1/get/following/:identifier` |
+| `/v1/posts/by-link` | `/v1/get/posts/by-link` |
+| `/v1/posts/:id` | `/v1/get/posts/:id` |
 
 ## Accounts, Profiles, Followers, Following
 
@@ -87,3 +144,5 @@ All write operations are safe dry-run by default.
 - `link`: must use Instagram host and supported path (`p`, `reel`, `tv`, `stories`, or profile where supported).
 - `limit`: integer, bounded by `MAX_LIMIT`.
 - `dryRun`: defaults to `true` for write actions.
+
+`POST /v1/comments/reply` accepts either `id` or `link`. If both are present, `id` wins because it is the explicit target and avoids URL ambiguity.
