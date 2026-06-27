@@ -1,43 +1,44 @@
 {
-  "name": "tenrusl-instagram-api-nodejs",
-  "version": "4.0.0",
-  "description": "Production-ready Express API gateway skeleton and mock Instagram contract with explicit provider readiness boundaries, health probes, metrics, tests, and deployment templates.",
-  "type": "module",
-  "main": "src/server.js",
-  "engines": {
-    "node": ">=22 <25",
-    "npm": ">=10"
-  },
-  "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "check": "node --check src/server.js",
-    "test": "node --test",
-    "doctor": "node scripts/doctor.js",
-    "lint": "node scripts/lint-basic.js",
-    "verify": "npm run check && npm run lint && npm test && npm run doctor"
-  },
-  "keywords": [
-    "instagram",
-    "api-gateway",
-    "meta-graph-api",
-    "express",
-    "nodejs24",
-    "nodejs22",
-    "docker",
-    "kubernetes",
-    "cloud",
-    "observability",
-    "production-ready"
-  ],
-  "author": "Andika Rusli",
-  "license": "MIT",
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "express": "^5.1.0",
-    "helmet": "^8.0.0",
-    "zod": "^3.24.1",
-    "serverless-http": "^3.2.0"
-  }
+    "name": "tenrusl-instagram-api-nodejs",
+    "version": "4.0.0",
+    "description": "Production-ready Express API gateway skeleton and mock Instagram contract with explicit provider readiness boundaries, health probes, metrics, tests, and deployment templates.",
+    "type": "module",
+    "main": "src/server.js",
+    "engines": {
+        "node": ">=22 <25",
+        "npm": ">=10"
+    },
+    "scripts": {
+        "start": "node src/server.js",
+        "dev": "node --watch src/server.js",
+        "check": "node --check src/server.js",
+        "test": "node --test \"src/tests/*.test.js\"",
+        "smoke:get": "node scripts/api-smoke.js",
+        "doctor": "node scripts/doctor.js",
+        "lint": "node scripts/lint-basic.js",
+        "verify": "npm run check && npm run lint && npm test && npm run doctor"
+    },
+    "keywords": [
+        "instagram",
+        "api-gateway",
+        "meta-graph-api",
+        "express",
+        "nodejs24",
+        "nodejs22",
+        "docker",
+        "kubernetes",
+        "cloud",
+        "observability",
+        "production-ready"
+    ],
+    "author": "Andika Rusli",
+    "license": "MIT",
+    "dependencies": {
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.7",
+        "express": "^5.1.0",
+        "helmet": "^8.0.0",
+        "zod": "^3.24.1",
+        "serverless-http": "^3.2.0"
+    }
 }

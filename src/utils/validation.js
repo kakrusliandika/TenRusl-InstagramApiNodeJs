@@ -33,15 +33,6 @@ export function validateIdentifier(raw) {
     }
 }
 
-export function validateUsername(raw) {
-    try {
-        return failFromZod(usernameSchema.safeParse(raw), "Username is invalid.");
-    } catch (error) {
-        if (error instanceof AppError) error.code = ERROR_CODES.USERNAME_INVALID;
-        throw error;
-    }
-}
-
 export function validateId(raw) {
     return failFromZod(idSchema.safeParse(raw), "ID is invalid.");
 }

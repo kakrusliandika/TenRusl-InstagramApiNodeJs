@@ -51,6 +51,38 @@ test('mock provider returns safe dry-run action result', async () => {
   assert.equal(result.result.status, 'dry-run');
 });
 
+test("mock provider keeps every write dry-run even when dryRun=false is requested", async () => {
+    const provider = createInstagramProvider("mock");
+
+    const action = await provider.performAction("follow", "tenrusl", { dryRun: false });
+    assert.equal(action.dryRun, true);
+    assert.equal(action.requestedDryRun, false);
+    assert.equal(action.result.status, "dry-run");
+    assert.match(action.result.message, /No Instagram state was changed/);
+
+    const publish = await provider.publish("media", {
+        mediaUrl: "https://example.com/image.jpg",
+        mediaType: "IMAGE",
+        caption: "No real write",
+        dryRun: false,
+    });
+    assert.equal(publish.dryRun, true);
+    assert.equal(publish.requestedDryRun, false);
+    assert.equal(publish.draft.status, "dry-run");
+
+    const reply = await provider.replyComment({ id: "comment_123" }, { text: "No real reply", dryRun: false });
+    assert.equal(reply.dryRun, true);
+    assert.equal(reply.result.status, "dry-run");
+
+    const message = await provider.sendMessage("thread_123", {
+        username: "tenrusl",
+        text: "No real message",
+        dryRun: false,
+    });
+    assert.equal(message.dryRun, true);
+    assert.equal(message.result.status, "dry-run");
+});
+
 test('non-mock providers fail clearly when required env is missing', async () => {
   await assert.rejects(() => new OfficialInstagramProvider({ config: {} }).getInsights(), {
     code: 'PROVIDER_NOT_CONFIGURED',
