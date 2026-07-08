@@ -13,7 +13,9 @@
         "dev": "node --watch src/server.js",
         "check": "node --check src/server.js",
         "test": "node --test \"src/tests/*.test.js\"",
-        "smoke:get": "node scripts/api-smoke.js",
+        "smoke:get": "node scripts/api-smoke.js --method=get",
+        "smoke:post": "node scripts/api-smoke.js --method=post",
+        "smoke:api": "node scripts/api-smoke.js --method=api",
         "doctor": "node scripts/doctor.js",
         "lint": "node scripts/lint-basic.js",
         "verify": "npm run check && npm run lint && npm test && npm run doctor"

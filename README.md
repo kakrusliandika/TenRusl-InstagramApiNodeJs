@@ -5,7 +5,7 @@
 TenRusl Instagram API Gateway adalah template API Node.js production-ready untuk menyatukan kontrak endpoint Instagram berbasis Express, provider adapter, validasi input, observability, Docker, deployment multi-platform, dan dokumentasi operasional.
 
 > ℹ️ **Arti "API full"**  
-> Istilah "API full" di project ini berarti **full gateway contract**: route, controller, provider method, validasi, test, dan standard response envelope tersedia konsisten. **Hanya `IG_PROVIDER=mock` yang mengembalikan full contract untuk semua endpoint tanpa credential/upstream live.** Provider non-mock bersifat terbatas sesuai boundary resmi, legal, credential, dan upstream masing-masing.
+> Istilah "API full" di project ini berarti **full gateway contract**: route, controller, provider method, validasi, test, dan standard response envelope tersedia konsisten. **Hanya `IG_PROVIDER=mock` yang mengembalikan full contract untuk semua endpoint tanpa credential/upstream live.** Provider non-mock bersifat terbatas sesuai boundary resmi, legal, credential, dan upstream masing-masing. Live Instagram behavior depends on official Meta scope, credential, compliant upstream, and reviewed provider implementation.
 
 > 🛡️ **Peringatan Kepatuhan**  
 > Project ini tidak menyediakan fitur untuk melewati login, proteksi anti-bot, rate-limit, pencurian sesi, credential stuffing, atau akses data tanpa izin. Gunakan **Instagram Graph API / Meta API resmi** untuk integrasi resmi. Adapter `public` dibatasi untuk data publik yang boleh diakses secara legal dan sesuai ketentuan. Adapter `authorized` hanya untuk data milik sendiri atau izin eksplisit, nonaktif secara default, dan tidak menyimpan password mentah.
@@ -235,12 +235,14 @@ npm start          # jalankan mode start bergaya produksi
 npm run check      # cek sintaks titik masuk
 npm run lint       # pemindaian dasar pola rahasia/tidak aman
 npm test           # jalankan rangkaian pengujian node:test
-npm run smoke:get  # jalankan smoke test semua endpoint GET dengan IG_PROVIDER=mock
+npm run smoke:get  # smoke test semua endpoint GET (expect 200)
+npm run smoke:post # smoke test semua endpoint POST (expect 202)
+npm run smoke:api  # smoke test GET dan POST sekaligus
 npm run doctor     # cek kesiapan waktu jalan dan struktur
 npm run verify     # jalankan check + lint + test + doctor
 ```
 
-`npm run smoke:get` menjalankan server lokal sementara dalam mode `IG_PROVIDER=mock`, memanggil seluruh endpoint `GET` canonical dan alias kompatibilitas, lalu menampilkan ringkasan total endpoint, distribusi status code, dan daftar endpoint yang gagal.
+Smoke script menjalankan server lokal sementara dalam mode `IG_PROVIDER=mock`, memanggil endpoint canonical dan alias kompatibilitas, lalu menampilkan ringkasan total GET/POST, distribusi status code, dan daftar endpoint yang gagal. GET valid expect `200`, POST valid expect `202`.
 
 ## 🧾 Response Standar
 
@@ -609,20 +611,23 @@ Struktur ini dibuat agar alur `server -> app -> middleware -> router -> controll
 │   ├── app.js                         # Membuat Express app, memasang middleware, route, static page, not-found, dan error handler
 │   ├── server.js                      # Entry point HTTP server, listen port, graceful shutdown
 │   ├── config
-│   │   └── env.js                     # Normalisasi dan validasi environment variable runtime
+│   │   ├── env.js                     # Normalisasi dan validasi environment variable runtime
+│   │   └── logger.js                  # Logger JSON sederhana untuk request/error/runtime
 │   ├── routes
 │   │   ├── index.js                   # Router root untuk health, ready, live, metrics, capabilities, /v1, dan alias /api/v1
+│   │   ├── system.routes.js           # Route sistem: health, ready, live, metrics, capabilities, status page
 │   │   └── v1.routes.js               # Kontrak route Instagram canonical dan legacy alias
 │   ├── modules
 │   │   ├── account.controller.js      # Controller akun: validasi identifier lalu panggil provider getAccount
-│   │   ├── action.controller.js       # Controller action follow/unfollow safe contract
 │   │   ├── comment.controller.js      # Controller komentar dan reply dry-run
+│   │   ├── controller.helpers.js      # Helper bersama untuk controller (pagination response, error handling)
 │   │   ├── discovery.controller.js    # Controller mentions dan hashtag media
+│   │   ├── gateway.controller.js      # Controller action follow/unfollow safe contract (lihat juga relation.controller.js)
 │   │   ├── insight.controller.js      # Controller insight provider-specific
 │   │   ├── media.controller.js        # Controller media/content/publish/post by id/link
 │   │   ├── message.controller.js      # Controller conversations, messages, thread, send message
 │   │   ├── profile.controller.js      # Controller profil by identifier/link
-│   │   └── relation.controller.js     # Controller followers/following
+│   │   └── relation.controller.js     # Controller followers/following dan action follow/unfollow
 │   ├── providers
 │   │   └── instagram
 │   │       ├── index.js               # Export provider factory, contract, capabilities, dan adapter provider
@@ -635,36 +640,39 @@ Struktur ini dibuat agar alur `server -> app -> middleware -> router -> controll
 │   │       └── authorized.provider.js # Placeholder disabled-by-default untuk data owned/consented yang direview
 │   ├── middlewares
 │   │   ├── api-key.middleware.js      # Proteksi API key via x-api-key atau Authorization Bearer
-│   │   ├── cors.middleware.js         # CORS allowlist berdasarkan CORS_ORIGIN
 │   │   ├── error.middleware.js        # Mengubah AppError/error umum menjadi standard response envelope
-│   │   ├── metrics.middleware.js      # Counter request dan metrics runtime
 │   │   ├── not-found.middleware.js    # 404 standar saat route tidak ditemukan
 │   │   ├── rate-limit.middleware.js   # Rate limit in-memory aman untuk single instance/local
 │   │   ├── request-id.middleware.js   # Request ID untuk trace log dan response header
-│   │   └── security.middleware.js     # Helmet, body parser limit, sanitasi, dan hardening dasar
+│   │   └── security.middleware.js     # Helmet, CORS allowlist, body parser limit, sanitasi, dan hardening dasar
 │   ├── schemas
-│   │   └── instagram.schema.js        # Schema Zod untuk identifier, pagination, link, publish, action, message
+│   │   ├── common.schema.js           # Schema Zod bersama: identifier, pagination, queryBoolean, link query, hashtag query
+│   │   ├── action.schema.js           # Schema Zod untuk body action follow/unfollow
+│   │   ├── post.schema.js             # Schema Zod untuk collection query (all, limit, page) dan publish body
+│   │   ├── comment.schema.js          # Schema Zod untuk comment reply body
+│   │   └── message.schema.js          # Schema Zod untuk message send body
 │   ├── services
-│   │   └── logger.js                  # Logger JSON sederhana untuk request/error/runtime
+│   │   └── metrics.service.js         # Counter request, metrics runtime, dan Prometheus-style output
 │   ├── serverless
-│   │   └── handler.js                 # Adapter serverless untuk platform seperti Netlify/Vercel
+│   │   └── vercel.js                  # Adapter serverless untuk Vercel/Netlify
 │   ├── utils
-│   │   ├── app-error.js               # AppError dengan statusCode, code, details
 │   │   ├── async-handler.js           # Wrapper async controller agar error masuk middleware global
 │   │   ├── comment-target.js          # Normalisasi target reply komentar dari id atau link
-│   │   ├── envelope.js                # Helper success/error response envelope
+│   │   ├── errors.js                  # AppError dan error codes untuk statusCode, code, details
 │   │   ├── instagram-url.js           # Parser dan validasi URL Instagram
-│   │   ├── pagination.js              # Helper pagination limit/page/cursor/all
-│   │   ├── provider-error.js          # Error provider untuk disabled/upstream/not implemented
+│   │   ├── response.js                # Helper success/error response envelope
 │   │   ├── sanitize.js                # Sanitasi input umum
-│   │   └── validation.js              # Helper validasi request berbasis schema
+│   │   └── validation.js              # Helper validasi request berbasis schema Zod
 │   └── tests
 │       ├── api-smoke.test.js          # Smoke/contract test endpoint GET/POST dan envelope
 │       ├── gateway-contract.test.js   # Test kontrak provider method, controller factory, dan wiring router
 │       ├── health.test.js             # Test health/ready/live/metrics/status page
 │       ├── providers.test.js          # Test provider factory dan boundary provider
 │       ├── security.test.js           # Test API key dan rate limit
-│       └── v1-routes.test.js          # Test route canonical, alias legacy, validasi, dan error envelope
+│       ├── server-helper.js           # Helper untuk menjalankan server sementara dalam test
+│       ├── test-client.js             # Helper HTTP client dan envelope assertion untuk test
+│       ├── v1-routes.test.js          # Test route canonical, alias legacy, validasi, dan error envelope
+│       └── validation.test.js         # Test validasi schema Zod termasuk queryBoolean
 ├── docs
 │   ├── API.md                         # Referensi endpoint, response envelope, legacy alias, dan matrix status provider
 │   ├── ARCHITECTURE.md                # Alur arsitektur Express, provider, deployment, dan observability
@@ -717,8 +725,18 @@ Struktur ini dibuat agar alur `server -> app -> middleware -> router -> controll
 
 Catatan audit struktur:
 
-- `src/routes/v1.routes.js` adalah titik utama untuk menambah route.
+- `src/routes/v1.routes.js` adalah titik utama untuk menambah route Instagram canonical.
+- `src/routes/system.routes.js` menangani route sistem (health, ready, live, metrics, capabilities).
 - Controller di `src/modules/*` harus memanggil method provider yang didefinisikan di `provider.contract.js`.
+- Action follow/unfollow ada di `relation.controller.js` dan `gateway.controller.js`, bukan file `action.controller.js` terpisah.
+- CORS diatur di dalam `security.middleware.js`, bukan middleware CORS terpisah.
+- Metrics runtime ada di `services/metrics.service.js`, bukan middleware.
+- Schema Zod dipisah menjadi 5 file: `common.schema.js` (shared), `action.schema.js`, `post.schema.js`, `comment.schema.js`, `message.schema.js`.
+- Logger ada di `config/logger.js`.
+- Adapter serverless aktif adalah `serverless/vercel.js`.
+- AppError dan error codes ada di `utils/errors.js`.
+- Response envelope helper ada di `utils/response.js`.
+- Pagination helper ada di `common.schema.js` dan `validation.js`.
 - Provider baru atau method baru wajib ditutup test di `src/tests/gateway-contract.test.js` dan smoke test agar route tidak putus diam-diam.
 - Semua response JSON harus melewati helper envelope dan error middleware agar format tetap konsisten.
 

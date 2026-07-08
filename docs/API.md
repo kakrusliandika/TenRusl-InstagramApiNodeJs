@@ -1,26 +1,31 @@
-# API Reference
+<!-- Dokumen ini berisi referensi lengkap endpoint API. -->
+<!-- Konten endpoint, JSON key, HTTP method, dan command tetap dalam bahasa Inggris sesuai standar teknis. -->
 
-Base URL local: `http://localhost:3000`.
+# Referensi API
 
-## Scope: "API full" means full mock contract
+Base URL lokal: `http://localhost:3000`.
 
-"API full" in this project means the gateway exposes a full Express contract: routes, controllers, provider methods, validation, tests, and standard response envelopes are wired consistently. It does **not** mean every provider can perform every Instagram operation against live upstreams.
+## Lingkup: "API full" berarti full contract mode mock
 
-Only `IG_PROVIDER=mock` supports the full endpoint contract for all routes without Instagram credentials or external upstreams. Non-mock providers are intentionally limited by official API scope, compliant upstream availability, reviewed consent, credentials, and safety/compliance boundaries.
+"API full" dalam project ini berarti gateway mengekspos full Express contract: route, controller, method provider, validasi, test, dan standard response envelope yang terhubung secara konsisten. Ini **bukan** berarti setiap provider dapat menjalankan semua operasi Instagram terhadap upstream live.
 
-All JSON API endpoints use this envelope. The static `/` page serves HTML, and `/metrics` serves Prometheus text unless `?format=json` is requested.
+Hanya `IG_PROVIDER=mock` yang mendukung full endpoint contract untuk semua route tanpa credential Instagram atau upstream eksternal. Provider selain mock sengaja dibatasi oleh scope API resmi, ketersediaan upstream yang compliant, consent yang sudah direview, credential, dan batasan keamanan/kepatuhan.
+
+Full API contract berjalan penuh pada mode mock. Perilaku live Instagram bergantung pada credential resmi, scope Meta, upstream yang compliant, dan implementasi provider yang aktif.
+
+Semua endpoint JSON API menggunakan envelope ini. Halaman statis `/` menyajikan HTML, dan `/metrics` menyajikan format Prometheus kecuali jika `?format=json` diminta.
 
 ```json
 { "success": true, "data": {}, "meta": {}, "error": null }
 ```
 
-Errors use:
+Error menggunakan:
 
 ```json
 { "success": false, "data": null, "meta": {}, "error": { "code": "ERROR_CODE", "message": "Message", "details": {} } }
 ```
 
-## Quick Curl
+## Contoh Curl Cepat
 
 ```bash
 curl http://localhost:3000/health
@@ -29,6 +34,8 @@ curl http://localhost:3000/capabilities
 curl http://localhost:3000/v1/get/profiles/tenrusl
 curl "http://localhost:3000/v1/get/posts/by-link?link=https://www.instagram.com/p/ABC123def45/"
 ```
+
+<!-- Contoh dry-run untuk comment reply dan publish. -->
 
 Comment reply dry-run:
 
@@ -58,51 +65,57 @@ curl.exe -X POST http://localhost:3000/v1/comments/reply -H "content-type: appli
 curl.exe -X POST http://localhost:3000/v1/publish/media -H "content-type: application/json" -d "{\"mediaUrl\":\"https://example.com/image.jpg\",\"mediaType\":\"IMAGE\",\"caption\":\"Dry run only\",\"dryRun\":true}"
 ```
 
-## Provider Endpoint Status Matrix
+<!-- Tabel berikut menunjukkan status setiap grup endpoint pada masing-masing provider. -->
 
-Legend:
+## Matriks Status Endpoint per Provider
 
-| Status | Meaning |
+Keterangan:
+
+| Status | Arti |
 |---|---|
-| ✅ Ready | Implemented for that provider boundary. |
-| ◐ Partial | Partially implemented; depends on scope, fields, upstream behavior, or a subset of the contract. |
-| 🧪 Dry-run | Request contract is accepted but no live write/action is executed. |
-| 🔐 Needs credential/upstream | Requires provider credentials, approved scopes, account IDs, or a compliant upstream. |
-| ⛔ Disabled | Explicitly rejected or not implemented for that provider. |
+| ✅ Siap | Diimplementasikan untuk batasan provider tersebut. |
+| ◐ Sebagian | Terimplementasi sebagian; bergantung pada scope, field, perilaku upstream, atau subset contract. |
+| 🧪 Dry-run | Contract request diterima tetapi tidak ada write/aksi live yang dieksekusi. |
+| 🔐 Perlu credential/upstream | Membutuhkan credential provider, scope yang disetujui, ID akun, atau upstream yang compliant. |
+| ⛔ Dinonaktifkan | Ditolak secara eksplisit atau tidak diimplementasikan untuk provider tersebut. |
 
-| Endpoint group | Mock | Official | Public | Authorized |
+| Grup endpoint | Mock | Official | Public | Authorized |
 |---|---:|---:|---:|---:|
-| System: `/health`, `/live` | ✅ Ready | ✅ Ready | ✅ Ready | ✅ Ready |
-| Readiness/capability: `/ready`, `/capabilities` | ✅ Ready | 🔐 Needs Meta env; ◐ readiness | 🔐 Needs compliant upstream; ◐ readiness | ⛔ Disabled until reviewed integration |
-| Metrics: `/metrics` | ✅ Ready | ✅ Ready | ✅ Ready | ✅ Ready |
-| Accounts/profiles: `/v1/get/accounts/*`, `/v1/get/profiles/*` | ✅ Ready | ◐ Partial; 🔐 Meta credential/account scope | ◐ Upstream-dependent; 🔐 compliant upstream | ⛔ Disabled |
-| Followers/following | ✅ Ready | ⛔ Disabled; unsupported safe Meta boundary here | ◐ Upstream-dependent; 🔐 compliant upstream | ⛔ Disabled |
-| Content reads: photos/feeds/statuses/posts/reels/media by user/link/id | ✅ Ready | ⛔ Disabled except provider-specific supported reads | ◐ Upstream-dependent; 🔐 compliant upstream | ⛔ Disabled |
-| Comments reads | ✅ Ready | ⛔ Disabled unless future approved scope is implemented | ◐ Upstream-dependent; 🔐 compliant upstream | ⛔ Disabled |
-| Discovery: mentions, hashtag media | ✅ Ready | ⛔ Disabled unless future approved scope is implemented | ◐ Upstream-dependent; 🔐 compliant upstream | ⛔ Disabled |
-| Insights | ✅ Ready | ◐ Partial; 🔐 Meta credential, IG user ID, approved scopes | ⛔ Disabled | ⛔ Disabled |
-| Messaging/conversations | ✅ Ready | ⛔ Disabled unless future approved Messenger/IG scope is implemented | ⛔ Disabled | ⛔ Disabled |
-| Writes/actions: follow, unfollow, publish, comment reply, send message | 🧪 Dry-run only | ⛔ Disabled; no automation/write boundary | ⛔ Disabled/read-only | ⛔ Disabled until reviewed consent integration |
+| System: `/health`, `/live` | ✅ Siap | ✅ Siap | ✅ Siap | ✅ Siap |
+| Readiness/capability: `/ready`, `/capabilities` | ✅ Siap | 🔐 Perlu env Meta; ◐ readiness | 🔐 Perlu upstream compliant; ◐ readiness | ⛔ Dinonaktifkan sampai integrasi direview |
+| Metrics: `/metrics` | ✅ Siap | ✅ Siap | ✅ Siap | ✅ Siap |
+| Akun/profil: `/v1/get/accounts/*`, `/v1/get/profiles/*` | ✅ Siap | ◐ Sebagian; 🔐 Credential Meta/scope akun | ◐ Bergantung upstream; 🔐 upstream compliant | ⛔ Dinonaktifkan |
+| Followers/following | ✅ Siap | ⛔ Dinonaktifkan; batasan Meta yang aman di sini | ◐ Bergantung upstream; 🔐 upstream compliant | ⛔ Dinonaktifkan |
+| Baca konten: foto/feed/status/post/reel/media berdasarkan user/link/id | ✅ Siap | ⛔ Dinonaktifkan kecuali baca tertentu yang didukung provider | ◐ Bergantung upstream; 🔐 upstream compliant | ⛔ Dinonaktifkan |
+| Baca komentar | ✅ Siap | ⛔ Dinonaktifkan kecuali scope yang disetujui diimplementasikan | ◐ Bergantung upstream; 🔐 upstream compliant | ⛔ Dinonaktifkan |
+| Discovery: mention, media hashtag | ✅ Siap | ⛔ Dinonaktifkan kecuali scope yang disetujui diimplementasikan | ◐ Bergantung upstream; 🔐 upstream compliant | ⛔ Dinonaktifkan |
+| Insights | ✅ Siap | ◐ Sebagian; 🔐 Credential Meta, IG user ID, scope yang disetujui | ⛔ Dinonaktifkan | ⛔ Dinonaktifkan |
+| Messaging/percakapan | ✅ Siap | ⛔ Dinonaktifkan kecuali scope Messenger/IG disetujui dan diimplementasikan | ⛔ Dinonaktifkan | ⛔ Dinonaktifkan |
+| Write/aksi: follow, unfollow, publish, reply komentar, kirim pesan | 🧪 Hanya dry-run | ⛔ Dinonaktifkan; tidak ada batasan otomatisasi/write | ⛔ Dinonaktifkan/hanya-baca | ⛔ Dinonaktifkan sampai integrasi consent direview |
 
-Use the endpoint tables below as the canonical gateway contract. Use this matrix to decide whether a provider returns live data, dry-run responses, explicit provider errors, or readiness warnings.
+Gunakan tabel endpoint di bawah sebagai contract gateway kanonis. Gunakan matriks ini untuk menentukan apakah sebuah provider mengembalikan data live, response dry-run, error provider eksplisit, atau peringatan readiness.
 
 ## System
 
-| Method | Path | Description | Provider status |
+<!-- Endpoint system tersedia untuk semua provider. -->
+
+| Method | Path | Deskripsi | Status provider |
 |---|---|---|---|
-| GET | `/health` | Service health. | ✅ All providers |
-| GET | `/ready` | Readiness and provider configuration warnings. | ✅ Mock; 🔐/◐ non-mock depending env |
-| GET | `/live` | Liveness probe. | ✅ All providers |
-| GET | `/metrics` | Prometheus-style metrics. Add `?format=json` for JSON. | ✅ All providers |
-| GET | `/capabilities` | Active provider and safe operation capabilities. | ✅ Mock; 🔐/◐ non-mock depending env |
+| GET | `/health` | Kesehatan layanan. | ✅ Semua provider |
+| GET | `/ready` | Readiness dan peringatan konfigurasi provider. | ✅ Mock; 🔐/◐ non-mock tergantung env |
+| GET | `/live` | Probe liveness. | ✅ Semua provider |
+| GET | `/metrics` | Metrik gaya Prometheus. Tambahkan `?format=json` untuk JSON. | ✅ Semua provider |
+| GET | `/capabilities` | Provider aktif dan kemampuan operasi yang aman. | ✅ Mock; 🔐/◐ non-mock tergantung env |
 
-## Official and Legacy Routes
+## Route Resmi dan Legacy
 
-Canonical API routes use `/v1`. The `/v1/get/...` read routes are the official account, profile, relation, and media contract.
+<!-- Route kanonis menggunakan prefix /v1. Route legacy dipertahankan untuk kompatibilitas klien lama. -->
 
-Legacy aliases are retained for existing clients and return the same standard JSON envelope:
+Route API kanonis menggunakan `/v1`. Route baca `/v1/get/...` adalah contract resmi untuk akun, profil, relasi, dan media.
 
-| Legacy path | Replacement |
+Alias legacy dipertahankan untuk klien yang sudah ada dan mengembalikan standard JSON envelope yang sama:
+
+| Path legacy | Pengganti |
 |---|---|
 | `/api/v1/*` | `/v1/*` |
 | `/api/v1/instagram/:identifier` | `/v1/get/profiles/:identifier` |
@@ -114,19 +127,23 @@ Legacy aliases are retained for existing clients and return the same standard JS
 | `/v1/posts/by-link` | `/v1/get/posts/by-link` |
 | `/v1/posts/:id` | `/v1/get/posts/:id` |
 
-## Accounts, Profiles, Followers, Following
+## Akun, Profil, Followers, Following
 
-| Method | Path | Query/body | Provider status |
+<!-- Endpoint baca untuk akun, profil, dan relasi sosial. -->
+
+| Method | Path | Query/body | Status provider |
 |---|---|---|---|
-| GET | `/v1/get/accounts/:identifier` | ID or username. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
-| GET | `/v1/get/profiles/:identifier` | ID or username. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
-| GET | `/v1/get/profiles/by-link` | `link` or `url`. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
+| GET | `/v1/get/accounts/:identifier` | ID atau username. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
+| GET | `/v1/get/profiles/:identifier` | ID atau username. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
+| GET | `/v1/get/profiles/by-link` | `link` atau `url`. | ✅ Mock; ◐/🔐 Official; ◐/🔐 Public; ⛔ Authorized |
 | GET | `/v1/get/followers/:identifier` | `limit`, `page`, `cursor`, `all`. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 | GET | `/v1/get/following/:identifier` | `limit`, `page`, `cursor`, `all`. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 
-## Content
+## Konten
 
-| Method | Path | Provider status |
+<!-- Endpoint baca untuk foto, feed, status, post, reel, dan media. -->
+
+| Method | Path | Status provider |
 |---|---|---|
 | GET | `/v1/get/photos/users/:identifier` | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 | GET | `/v1/get/photos/by-link?link=` | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
@@ -142,11 +159,13 @@ Legacy aliases are retained for existing clients and return the same standard JS
 | GET | `/v1/get/media/users/:identifier` | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 | GET | `/v1/get/media/by-link?link=` | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 
-## Actions and Publishing
+## Aksi dan Publishing
 
-All write operations are safe dry-run in `mock`. Non-mock providers do not silently execute writes: unsupported actions fail explicitly unless a future reviewed provider implementation adds a safe live boundary.
+<!-- Semua operasi write menggunakan dry-run yang aman pada mode mock. -->
 
-| Method | Path | Body | Provider status |
+Semua operasi write adalah dry-run yang aman pada `mock`. Provider selain mock tidak mengeksekusi write secara diam-diam: aksi yang tidak didukung gagal secara eksplisit kecuali implementasi provider yang direview menambahkan batasan live yang aman di masa depan.
+
+| Method | Path | Body | Status provider |
 |---|---|---|---|
 | POST | `/v1/actions/follow/:identifier` | `{ "dryRun": true }` | 🧪 Mock; ⛔ Official/Public/Authorized |
 | POST | `/v1/actions/unfollow/:identifier` | `{ "dryRun": true }` | 🧪 Mock; ⛔ Official/Public/Authorized |
@@ -156,27 +175,31 @@ All write operations are safe dry-run in `mock`. Non-mock providers do not silen
 | POST | `/v1/publish/feeds` | `{ "mediaUrl", "mediaType", "caption", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
 | POST | `/v1/publish/statuses` | `{ "mediaUrl", "mediaType", "caption", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
 
-## Comments, Discovery, Insights, Messaging
+## Komentar, Discovery, Insights, Messaging
 
-| Method | Path | Query/body | Provider status |
+<!-- Endpoint untuk komentar, discovery, insights, dan messaging. -->
+
+| Method | Path | Query/body | Status provider |
 |---|---|---|---|
-| GET | `/v1/comments` | optional `link`, pagination. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
+| GET | `/v1/comments` | opsional `link`, pagination. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
 | POST | `/v1/comments/:id/reply` | `{ "text", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
-| POST | `/v1/comments/reply` | `{ "id" or "link", "text", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
+| POST | `/v1/comments/reply` | `{ "id" atau "link", "text", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
 | GET | `/v1/mentions` | pagination. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
-| GET | `/v1/hashtags/media` | `hashtag` or `tag`, pagination. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
-| GET | `/v1/insights` | provider-specific. | ✅ Mock; ◐/🔐 Official; ⛔ Public/Authorized |
+| GET | `/v1/hashtags/media` | `hashtag` atau `tag`, pagination. | ✅ Mock; ⛔ Official; ◐/🔐 Public; ⛔ Authorized |
+| GET | `/v1/insights` | tergantung provider. | ✅ Mock; ◐/🔐 Official; ⛔ Public/Authorized |
 | GET | `/v1/conversations` | pagination. | ✅ Mock; ⛔ Official/Public/Authorized |
 | GET | `/v1/messages` | pagination. | ✅ Mock; ⛔ Official/Public/Authorized |
-| GET | `/v1/messages/:id` | thread messages. | ✅ Mock; ⛔ Official/Public/Authorized |
-| POST | `/v1/messages/:id/send` | `{ "recipientId" or "username", "text", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
+| GET | `/v1/messages/:id` | thread pesan. | ✅ Mock; ⛔ Official/Public/Authorized |
+| POST | `/v1/messages/:id/send` | `{ "recipientId" atau "username", "text", "dryRun" }` | 🧪 Mock; ⛔ Official/Public/Authorized |
 
-## Validation
+## Validasi
 
-- `username`: letters, numbers, dots, underscores; no consecutive/trailing dots; max 30 chars.
-- `id`: required, safe characters only, max 128 chars.
-- `link`: must use Instagram host and supported path (`p`, `reel`, `tv`, `stories`, or profile where supported).
-- `limit`: integer, bounded by `MAX_LIMIT`.
-- `dryRun`: defaults to `true` for write actions.
+<!-- Aturan validasi input yang diterapkan pada seluruh endpoint. -->
 
-`POST /v1/comments/reply` accepts either `id` or `link`. If both are present, `id` wins because it is the explicit target and avoids URL ambiguity.
+- `username`: huruf, angka, titik, underscore; tidak boleh titik berurutan/trailing; maks 30 karakter.
+- `id`: wajib, hanya karakter aman, maks 128 karakter.
+- `link`: harus menggunakan host Instagram dan path yang didukung (`p`, `reel`, `tv`, `stories`, atau profil yang didukung).
+- `limit`: integer, dibatasi oleh `MAX_LIMIT`.
+- `dryRun`: default `true` untuk aksi write.
+
+`POST /v1/comments/reply` menerima `id` atau `link`. Jika keduanya ada, `id` yang diprioritaskan karena merupakan target eksplisit dan menghindari ambiguitas URL.

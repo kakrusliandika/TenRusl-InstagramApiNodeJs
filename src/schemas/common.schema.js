@@ -24,6 +24,18 @@ export const identifierSchema = z
     .max(128, "Identifier is too long.")
     .regex(/^[A-Za-z0-9:_\-.@]+$/, "Identifier contains unsupported characters.");
 
+export const queryBoolean = z
+    .string()
+    .optional()
+    .default("false")
+    .transform((v, ctx) => {
+        const normalized = v.trim().toLowerCase();
+        if (["true", "1", "yes", "y", "on"].includes(normalized)) return true;
+        if (["false", "0", "no", "n", "off", ""].includes(normalized)) return false;
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Invalid boolean value "${v}". Use true/false, 1/0, yes/no, y/n, on/off.` });
+        return z.NEVER;
+    });
+
 export const paginationSchema = z.object({
     limit: z.coerce.number().int().min(1).max(env.maxLimit).default(env.defaultLimit),
     page: z.coerce.number().int().min(1).default(1),

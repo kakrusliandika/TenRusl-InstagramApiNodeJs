@@ -1,57 +1,66 @@
-# Deployment Guide
+<!-- Dokumen ini berisi panduan deployment ke berbagai platform. -->
+<!-- Command, config key, platform name, dan env key tetap dalam bahasa Inggris. -->
 
-## Deployment File Ownership
+# Panduan Deployment
 
-Root configs are kept only when the platform or common tooling expects them at the repository root.
+## Kepemilikan File Deployment
 
-| File | Category | Purpose |
+<!-- Tabel ini menunjukkan file konfigurasi root yang aktif dan fungsinya. -->
+
+File konfigurasi root hanya disimpan ketika platform atau tooling umum mengharapkannya berada di root repository.
+
+| File | Kategori | Fungsi |
 |---|---|---|
-| `Dockerfile` | Active root config | Container image build. |
-| `docker-compose.yml` | Active root config | Local/staging container orchestration. |
-| `.github/workflows/ci.yml` | Active root config | CI source of truth. |
-| `Procfile` | Active root config | Heroku-style process command. |
-| `render.yaml` | Active root config | Render managed service. |
-| `railway.json` | Active root config | Railway deploy settings. |
-| `vercel.json` | Active root config | Vercel preview routing to `src/serverless/vercel.js`. |
-| `netlify.toml` | Active root config | Netlify preview routing to `netlify/functions/api.js`. |
-| `app.yaml` | Active root config | Google App Engine service config. Replace placeholder secrets before use. |
-| `cloudbuild.yaml` | Active root config | Google Cloud Build image template. |
-| `deploy/*` | Optional templates | Platform examples and notes. Replace placeholders before production. |
+| `Dockerfile` | Konfigurasi root aktif | Build image container. |
+| `docker-compose.yml` | Konfigurasi root aktif | Orchestration container lokal/staging. |
+| `.github/workflows/ci.yml` | Konfigurasi root aktif | Sumber kebenaran CI. |
+| `Procfile` | Konfigurasi root aktif | Perintah proses gaya Heroku. |
+| `render.yaml` | Konfigurasi root aktif | Layanan terkelola Render. |
+| `railway.json` | Konfigurasi root aktif | Pengaturan deploy Railway. |
+| `vercel.json` | Konfigurasi root aktif | Routing preview Vercel ke `src/serverless/vercel.js`. |
+| `netlify.toml` | Konfigurasi root aktif | Routing preview Netlify ke `netlify/functions/api.js`. |
+| `app.yaml` | Konfigurasi root aktif | Konfigurasi layanan Google App Engine. Ganti placeholder secret sebelum digunakan. |
+| `cloudbuild.yaml` | Konfigurasi root aktif | Template image Google Cloud Build. |
+| `deploy/*` | Template opsional | Contoh dan catatan platform. Ganti placeholder sebelum production. |
 
-Optional serverless and edge adapters are not the local runtime. Local and container runtime starts at `src/server.js`.
+Adapter serverless dan edge opsional bukan merupakan runtime lokal. Runtime lokal dan container dimulai dari `src/server.js`.
 
-## Deployment Matrix
+## Matriks Deployment
+
+<!-- Tabel ini menunjukkan status dan kesesuaian setiap platform deployment. -->
 
 | Platform | File | Status | Cocok untuk | Env wajib |
 |---|---|---|---|---|
-| Docker image | `Dockerfile`, `.dockerignore` | Active | Portable container runtime | Runtime env injected by platform or `--env-file`; never bake secrets into image. |
-| Docker Compose | `docker-compose.yml` | Active local/staging | Local staging with production-like container | `.env`, `NODE_ENV`, `IG_PROVIDER`, `API_KEY_ENABLED`, `CORS_ORIGIN`, rate limit, body limit, provider timeout. |
-| GitHub Actions | `.github/workflows/ci.yml` | Active CI | Validate PRs and pushes | No production secrets; runs local mock/provider-safe checks. |
-| App Engine | `app.yaml` | Active template | Google App Engine | `NODE_ENV`, `IG_PROVIDER`, `API_KEY_ENABLED`, `API_KEY`, `CORS_ORIGIN`, rate limit, provider timeout, selected provider env. |
-| Cloud Build | `cloudbuild.yaml` | Active image template | Google image build | Build-time project/image values only; runtime secrets come from deploy target. |
-| Cloud Run | `deploy/google-cloud/cloud-run.yaml` | Optional template | Container production/preview on Google Cloud | Same runtime env as App Engine; use Secret Manager for `API_KEY`, `META_ACCESS_TOKEN`, `META_IG_USER_ID`. |
-| AWS App Runner | `deploy/aws/apprunner.yaml` | Optional template | AWS managed container | Same runtime env as App Engine; use AWS Secrets Manager for secrets. |
-| Render | `render.yaml` | Active managed service | Managed web service | Non-secret env in YAML; `sync:false` for `API_KEY`, Meta token/id, and authorized token. |
-| Railway | `railway.json` | Active deploy settings | Quick Node deploy | Set env in Railway dashboard/variables; `railway.json` only owns build/start/probe settings. |
-| Heroku-style | `Procfile` | Active process command | Heroku-compatible platforms | Set env via platform config vars; `Procfile` only owns process command. |
-| Vercel | `vercel.json`, `src/serverless/vercel.js` | Preview serverless | Pull request/demo preview | Safe non-secret preview env in JSON; set secrets in Vercel dashboard if enabling auth/provider live data. |
-| Netlify | `netlify.toml`, `netlify/functions/api.js` | Preview serverless | Pull request/demo preview | Safe non-secret preview env in TOML; set secrets in Netlify UI if needed. |
-| Kubernetes | `deploy/kubernetes/*.yaml` | Optional production template | Multi-instance container deployment | ConfigMap for non-secrets, Secret/external secret manager for `API_KEY`, Meta token/id, authorized token. |
-| VPS | `deploy/vps/*` | Optional production template | VM/systemd/nginx deployment | systemd env for non-secrets; `/etc/tenrusl-instagram-api/secrets.env` or secret manager for secrets. |
-| Cloudflare Worker | `deploy/cloudflare/worker.js` | Edge proxy template | Reverse proxy/API facade | `ORIGIN_BASE_URL` must point to a deployed origin API. |
+| Docker image | `Dockerfile`, `.dockerignore` | Aktif | Runtime container portabel | Runtime env di-inject oleh platform atau `--env-file`; jangan bake secret ke dalam image. |
+| Docker Compose | `docker-compose.yml` | Aktif lokal/staging | Staging lokal dengan container mirip production | `.env`, `NODE_ENV`, `IG_PROVIDER`, `API_KEY_ENABLED`, `CORS_ORIGIN`, rate limit, body limit, provider timeout. |
+| GitHub Actions | `.github/workflows/ci.yml` | Aktif CI | Validasi PR dan push | Tidak ada secret production; menjalankan cek mock/provider-safe lokal. |
+| App Engine | `app.yaml` | Template aktif | Google App Engine | `NODE_ENV`, `IG_PROVIDER`, `API_KEY_ENABLED`, `API_KEY`, `CORS_ORIGIN`, rate limit, provider timeout, env provider terpilih. |
+| Cloud Build | `cloudbuild.yaml` | Template image aktif | Build image Google | Hanya nilai project/image saat build; runtime secret dari target deploy. |
+| Cloud Run | `deploy/google-cloud/cloud-run.yaml` | Template opsional | Container production/preview di Google Cloud | Sama dengan runtime env App Engine; gunakan Secret Manager untuk `API_KEY`, `META_ACCESS_TOKEN`, `META_IG_USER_ID`. |
+| AWS App Runner | `deploy/aws/apprunner.yaml` | Template opsional | Container terkelola AWS | Sama dengan runtime env App Engine; gunakan AWS Secrets Manager untuk secret. |
+| Render | `render.yaml` | Layanan terkelola aktif | Web service terkelola | Env non-secret di YAML; `sync:false` untuk `API_KEY`, token/id Meta, dan authorized token. |
+| Railway | `railway.json` | Pengaturan deploy aktif | Deploy Node.js cepat | Set env di Railway dashboard/variables; `railway.json` hanya mengatur build/start/probe. |
+| Heroku-style | `Procfile` | Perintah proses aktif | Platform kompatibel Heroku | Set env melalui config vars platform; `Procfile` hanya mengatur perintah proses. |
+| Vercel | `vercel.json`, `src/serverless/vercel.js` | Preview serverless | Preview PR/demo | Env preview non-secret yang aman di JSON; set secret di Vercel Project Settings jika mengaktifkan auth/data live provider. |
+| Netlify | `netlify.toml`, `netlify/functions/api.js` | Preview serverless | Preview PR/demo | Env preview non-secret yang aman di TOML; set secret di Netlify UI jika diperlukan. |
+| Kubernetes | `deploy/kubernetes/*.yaml` | Template production opsional | Deploy container multi-instance | ConfigMap untuk non-secret, Secret/external secret manager untuk `API_KEY`, token/id Meta, authorized token. |
+| VPS | `deploy/vps/*` | Template production opsional | Deploy VM/systemd/nginx | Env systemd untuk non-secret; `/etc/tenrusl-instagram-api/secrets.env` atau secret manager untuk secret. |
+| Cloudflare Worker | `deploy/cloudflare/worker.js` | Template edge proxy | Reverse proxy/facade API | `ORIGIN_BASE_URL` harus mengarah ke origin API yang sudah di-deploy. |
 
-Common runtime env across deploy targets:
+Env runtime umum di seluruh target deploy:
 
 - `NODE_ENV`, `IG_PROVIDER`, `API_KEY_ENABLED`, `API_KEY`, `CORS_ORIGIN`
 - `RATE_LIMIT_ENABLED`, `RATE_LIMIT_WINDOW_MS`, `RATE_LIMIT_MAX`
 - `BODY_LIMIT`, `PROVIDER_REQUEST_TIMEOUT_MS`
-- Provider-specific env: `META_GRAPH_BASE_URL`, `META_API_VERSION`, `META_ACCESS_TOKEN`, `META_IG_USER_ID`, `PUBLIC_DATA_ENABLED`, `PUBLIC_DATA_UPSTREAM_URL`, `AUTHORIZED_PROVIDER_ENABLED`, `AUTHORIZED_SESSION_TOKEN`, `AUTHORIZED_INTEGRATION_REVIEWED`
+- Env khusus provider: `META_GRAPH_BASE_URL`, `META_API_VERSION`, `META_ACCESS_TOKEN`, `META_IG_USER_ID`, `PUBLIC_DATA_ENABLED`, `PUBLIC_DATA_UPSTREAM_URL`, `AUTHORIZED_PROVIDER_ENABLED`, `AUTHORIZED_SESSION_TOKEN`, `AUTHORIZED_INTEGRATION_REVIEWED`
 
-Keep real secret values out of committed deployment files. Use platform secret managers, dashboard variables, Kubernetes Secrets, or a root-owned VPS environment file outside git.
+Jangan masukkan nilai secret yang sebenarnya ke dalam file deployment yang di-commit. Gunakan secret manager platform, dashboard variable, Kubernetes Secret, atau file environment VPS yang dimiliki root di luar git.
 
-## Local
+## Lokal
 
-Cocok untuk development dan audit cepat. Local default uses `IG_PROVIDER=mock`, so no Instagram credential is required.
+<!-- Instruksi untuk menjalankan project di mesin lokal. -->
+
+Cocok untuk development dan audit cepat. Default lokal menggunakan `IG_PROVIDER=mock`, sehingga tidak diperlukan credential Instagram.
 
 ```bash
 npm install
@@ -84,7 +93,7 @@ npm run doctor
 npm run dev
 ```
 
-Local smoke checks:
+Pengecekan smoke lokal:
 
 ```bash
 curl http://localhost:3000/health
@@ -99,19 +108,23 @@ curl -X POST http://localhost:3000/v1/comments/reply \
 
 Health check: `/health`. Readiness check: `/ready`.
 
-Local troubleshooting:
+### Troubleshooting Lokal
 
-| Problem | Fix |
+<!-- Solusi untuk masalah umum saat menjalankan di lokal. -->
+
+| Masalah | Solusi |
 |---|---|
-| Port `3000` already in use | Set `PORT=3001` in `.env`. |
-| API key `401` | Local default is `API_KEY_ENABLED=false`; if enabled, send `x-api-key` or bearer auth. |
-| Rate limit `429` | Wait for the reset or adjust `RATE_LIMIT_MAX` in local `.env`. |
-| Official provider not configured | Use `IG_PROVIDER=mock` locally, or fill the required Meta env. |
-| CORS blocked | Add your frontend origin to `CORS_ORIGIN`. |
+| Port `3000` sudah digunakan | Set `PORT=3001` di `.env`. |
+| API key `401` | Default lokal adalah `API_KEY_ENABLED=false`; jika diaktifkan, kirim `x-api-key` atau bearer auth. |
+| Rate limit `429` | Tunggu reset atau sesuaikan `RATE_LIMIT_MAX` di `.env` lokal. |
+| Provider official tidak terkonfigurasi | Gunakan `IG_PROVIDER=mock` di lokal, atau isi env Meta yang diperlukan. |
+| CORS diblokir | Tambahkan origin frontend kamu ke `CORS_ORIGIN`. |
 
 ## Docker
 
-Cocok untuk production parity dan platform container.
+<!-- Instruksi deploy menggunakan Docker. -->
+
+Cocok untuk parity production dan platform container.
 
 ```bash
 docker build -t tenrusl-instagram-api:production .
@@ -120,11 +133,13 @@ docker run --env-file .env -p 3000:3000 tenrusl-instagram-api:production
 
 File: `Dockerfile`, `.dockerignore`.
 
-The Docker image runs as the non-root `node` user. `.dockerignore` excludes common local secret files such as `.env`, `.env.local`, and `.env.production`; keep real secrets in runtime env or a secret manager.
+Image Docker berjalan sebagai user non-root `node`. `.dockerignore` mengecualikan file secret lokal umum seperti `.env`, `.env.local`, dan `.env.production`; simpan secret yang sebenarnya di env runtime atau secret manager.
 
 ## Docker Compose
 
-Cocok untuk local staging.
+<!-- Instruksi deploy menggunakan Docker Compose untuk staging lokal. -->
+
+Cocok untuk staging lokal.
 
 ```bash
 cp .env.example .env
@@ -133,29 +148,39 @@ docker compose up --build
 
 File: `docker-compose.yml`.
 
-Use `.env` for local staging values. The compose file provides safe defaults and does not include real tokens.
+Gunakan `.env` untuk nilai staging lokal. File compose menyediakan default yang aman dan tidak menyertakan token yang sebenarnya.
 
 ## Cloudflare
 
-Cocok sebagai edge proxy. `deploy/cloudflare/worker.js` adalah template reverse proxy, bukan runtime Express. Set `ORIGIN_BASE_URL` ke origin API sebelum deploy; the worker returns `500` when the origin is not configured.
+<!-- Instruksi deploy Cloudflare Worker sebagai edge proxy. -->
+
+Cocok sebagai edge proxy. `deploy/cloudflare/worker.js` adalah template reverse proxy, bukan runtime Express. Set `ORIGIN_BASE_URL` ke origin API sebelum deploy; worker mengembalikan `500` ketika origin tidak dikonfigurasi.
 
 ## GitHub Actions
+
+<!-- Konfigurasi CI aktif. -->
 
 Cocok untuk CI. File aktif: `.github/workflows/ci.yml`.
 
 ## Google Cloud
 
-Cocok untuk Cloud Run container. `deploy/google-cloud/cloud-run.yaml` adalah template; ganti image, project, secret, dan `IG_PROVIDER`.
+<!-- Instruksi deploy ke Google Cloud. -->
 
-Root `app.yaml` is for App Engine. Root `cloudbuild.yaml` is a Cloud Build image template. Keep real tokens in Secret Manager or platform config, not in committed YAML.
+Cocok untuk container Cloud Run. `deploy/google-cloud/cloud-run.yaml` adalah template; ganti image, project, secret, dan `IG_PROVIDER`.
 
-Build/start: container image, start `npm start`, port `3000`.
+Root `app.yaml` untuk App Engine. Root `cloudbuild.yaml` adalah template image Cloud Build. Simpan token yang sebenarnya di Secret Manager atau config platform, bukan di YAML yang di-commit.
+
+Build/start: image container, mulai `npm start`, port `3000`.
 
 ## AWS
+
+<!-- Instruksi deploy ke AWS. -->
 
 Cocok untuk App Runner atau ECS. `deploy/aws/apprunner.yaml` adalah template App Runner; adaptasi image, secret, dan provider sebelum deploy.
 
 ## Heroku
+
+<!-- Instruksi deploy ke Heroku. -->
 
 Cocok untuk deployment cepat. File: `Procfile`.
 
@@ -165,57 +190,75 @@ heroku config:set NODE_ENV=production IG_PROVIDER=mock
 
 ## Render
 
-Cocok untuk managed web service. File: `render.yaml` dengan health check `/health`.
+<!-- Instruksi deploy ke Render. -->
 
-Keep `sync:false` values populated from the Render dashboard. Do not commit real token values.
+Cocok untuk web service terkelola. File: `render.yaml` dengan health check `/health`.
+
+Isi nilai `sync:false` dari Render dashboard. Jangan commit nilai token yang sebenarnya.
 
 ## Railway
 
-Cocok untuk deploy cepat Node.js. File: `railway.json`.
+<!-- Instruksi deploy ke Railway. -->
 
-Set runtime env in Railway Variables. `railway.json` intentionally keeps only build, start, healthcheck, and restart policy.
+Cocok untuk deploy Node.js cepat. File: `railway.json`.
+
+Set runtime env di Railway Variables. `railway.json` sengaja hanya menyimpan pengaturan build, start, healthcheck, dan restart policy.
 
 ## Vercel
 
-Cocok untuk preview serverless, not the primary production recommendation for sustained API traffic. File aktif: `vercel.json`, yang menunjuk ke adapter `src/serverless/vercel.js`. Keep real secrets in Vercel Project Settings.
+<!-- Instruksi deploy ke Vercel. -->
+
+Cocok untuk preview serverless, bukan rekomendasi production utama untuk traffic API berkelanjutan. File aktif: `vercel.json`, yang mengarah ke adapter `src/serverless/vercel.js`. Simpan secret yang sebenarnya di Vercel Project Settings.
 
 ## Netlify
 
-Cocok untuk serverless preview, not the primary production recommendation for sustained API traffic. File aktif: `netlify.toml` dan `netlify/functions/api.js`. Keep real secrets in Netlify environment variables.
+<!-- Instruksi deploy ke Netlify. -->
+
+Cocok untuk preview serverless, bukan rekomendasi production utama untuk traffic API berkelanjutan. File aktif: `netlify.toml` dan `netlify/functions/api.js`. Simpan secret yang sebenarnya di environment variable Netlify.
 
 ## VPS
+
+<!-- Instruksi deploy ke VPS. -->
 
 Cocok untuk kontrol penuh. `deploy/vps/nginx.conf` dan `deploy/vps/systemd.service` adalah template; ganti domain, user, working directory, TLS, env, dan secret injection.
 
 ## Kubernetes
 
-Cocok untuk scale dan multi-region. File `deploy/kubernetes/*.yaml` adalah template; ganti image, namespace, secret, resource limits, ingress host, dan TLS.
+<!-- Instruksi deploy ke Kubernetes. -->
+
+Cocok untuk skala dan multi-region. File `deploy/kubernetes/*.yaml` adalah template; ganti image, namespace, secret, resource limits, ingress host, dan TLS.
 
 ```bash
 kubectl apply -f deploy/kubernetes/
 ```
 
-Readiness: `/ready`, liveness: `/live`. The deployment template includes CPU/memory requests and limits; tune them after load testing.
+Readiness: `/ready`, liveness: `/live`. Template deployment mencakup request dan limit CPU/memory; sesuaikan setelah load testing.
 
-## Per-Platform Checklist
+## Checklist Per Platform
 
-- Docker: build from `Dockerfile`, pass env at runtime, confirm image runs as non-root, and check `/health`.
-- Docker Compose: copy `.env.example` to `.env`, keep `IG_PROVIDER=mock` for staging unless provider env is complete, then run `docker compose up --build`.
-- Google/AWS/Render/Railway: set runtime env in platform config, put secrets in the platform secret manager/dashboard, and make `/ready` the deployment gate.
-- Kubernetes: apply ConfigMap and Secret/external secret first, then Deployment/Service/Ingress; verify probes and resource limits.
-- VPS: install Node or run the container, configure systemd and nginx, store secrets outside git, and add TLS.
-- Vercel/Netlify: use as preview unless you have reviewed serverless limits and cold-start behavior for your traffic.
-- Cloudflare: deploy only as a proxy after `ORIGIN_BASE_URL` points to a healthy API origin.
+<!-- Checklist yang harus dipenuhi untuk setiap platform sebelum deploy. -->
+
+- **Docker**: build dari `Dockerfile`, pass env saat runtime, pastikan image berjalan sebagai non-root, dan cek `/health`.
+- **Docker Compose**: copy `.env.example` ke `.env`, pertahankan `IG_PROVIDER=mock` untuk staging kecuali env provider sudah lengkap, lalu jalankan `docker compose up --build`.
+- **Google/AWS/Render/Railway**: set runtime env di config platform, masukkan secret ke secret manager/dashboard platform, dan jadikan `/ready` sebagai gerbang deploy.
+- **Kubernetes**: terapkan ConfigMap dan Secret/external secret terlebih dahulu, lalu Deployment/Service/Ingress; verifikasi probe dan resource limits.
+- **VPS**: install Node atau jalankan container, konfigurasi systemd dan nginx, simpan secret di luar git, dan tambahkan TLS.
+- **Vercel/Netlify**: gunakan sebagai preview kecuali kamu sudah meninjau batasan serverless dan perilaku cold-start untuk traffic kamu.
+- **Cloudflare**: deploy hanya sebagai proxy setelah `ORIGIN_BASE_URL` mengarah ke origin API yang sehat.
 
 ## Hybrid Multi-Cloud
 
+<!-- Arsitektur contoh untuk high availability multi-cloud. -->
+
 Cocok untuk high availability. `deploy/hybrid-multicloud/README.md` adalah arsitektur contoh, bukan config otomatis. Gunakan image yang sama di Kubernetes primary, Cloud Run/AWS secondary, VPS fallback, dan edge DNS failover.
 
-## Production Notes
+## Catatan Production
 
-- Replace all placeholder domains, image names, project IDs, and secret values.
-- Keep `METRICS_PUBLIC=false` and `CAPABILITIES_PUBLIC=false` unless these endpoints are protected upstream.
-- Prefer `IG_PROVIDER=official` for real Meta-approved Business/Creator integrations.
-- Treat `/ready` as the deployment readiness gate; non-mock providers must be configured and warning-free.
-- Add a distributed rate limiter such as Redis, platform gateway quotas, or WAF-level rate limits before running multiple API instances.
-- Do not treat `deploy/*` templates as final production config without review.
+<!-- Hal-hal yang harus diperhatikan sebelum deploy ke production. -->
+
+- Ganti semua placeholder domain, nama image, ID project, dan nilai secret.
+- Pertahankan `METRICS_PUBLIC=false` dan `CAPABILITIES_PUBLIC=false` kecuali endpoint ini dilindungi upstream.
+- Gunakan `IG_PROVIDER=official` untuk integrasi Business/Creator yang disetujui Meta secara resmi.
+- Perlakukan `/ready` sebagai gerbang readiness deploy; provider non-mock harus dikonfigurasi dan bebas peringatan.
+- Tambahkan rate limiter terdistribusi seperti Redis, kuota gateway platform, atau rate limit level WAF sebelum menjalankan beberapa instance API.
+- Jangan perlakukan template `deploy/*` sebagai config production akhir tanpa review.

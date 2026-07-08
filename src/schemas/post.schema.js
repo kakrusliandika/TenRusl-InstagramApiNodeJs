@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { paginationSchema } from "./common.schema.js";
+import { paginationSchema, queryBoolean } from "./common.schema.js";
 
 export const mediaTypeSchema = z.enum(["IMAGE", "VIDEO", "CAROUSEL", "REEL", "STORY", "FEED"]).default("IMAGE");
 
@@ -13,5 +13,5 @@ export const publishBodySchema = z
     .strict();
 
 export const collectionQuerySchema = paginationSchema.extend({
-    all: z.coerce.boolean().optional().default(false),
+    all: queryBoolean,
 });

@@ -1,69 +1,119 @@
-# Provider Adapters
+<!-- Dokumen ini berisi penjelasan tentang adapter provider yang tersedia. -->
+<!-- Nama provider, method, endpoint, dan key teknis tetap dalam bahasa Inggris. -->
 
-Provider selection is controlled by `IG_PROVIDER`.
+# Adapter Provider
 
-| Provider | Production status | Required env | Behavior |
+Pemilihan provider dikontrol oleh `IG_PROVIDER`.
+
+Full API contract berjalan penuh pada mode mock. Perilaku live Instagram bergantung pada credential resmi, scope Meta, upstream yang compliant, dan implementasi provider yang aktif.
+
+| Provider | Status production | Env yang diperlukan | Perilaku |
 |---|---|---|---|
-| `mock` | Safe default | none | Deterministic local data; write contracts return dry-run responses. |
-| `official` | Partial | `META_GRAPH_BASE_URL`, `META_API_VERSION`, `META_ACCESS_TOKEN`, `META_IG_USER_ID` | Uses the official Meta/Instagram Graph API only for supported account/profile/insight reads; unsupported operations fail explicitly. |
-| `public` | Disabled by default | `PUBLIC_DATA_ENABLED=true`, `PUBLIC_DATA_UPSTREAM_URL` | Proxies only to a compliant public-data upstream you control; private/write operations fail with `403`. |
-| `authorized` | Disabled / not production-ready | `AUTHORIZED_PROVIDER_ENABLED=true`, `AUTHORIZED_SESSION_TOKEN`, `AUTHORIZED_INTEGRATION_REVIEWED=true` plus reviewed code implementation | Reserved for owned or explicitly consented data after reviewed integration work; live operations are not implemented. |
+| `mock` | Default yang aman | tidak ada | Data lokal deterministik; contract write mengembalikan response dry-run. |
+| `official` | Sebagian | `META_GRAPH_BASE_URL`, `META_API_VERSION`, `META_ACCESS_TOKEN`, `META_IG_USER_ID` | Menggunakan Meta/Instagram Graph API resmi hanya untuk operasi baca akun/profil/insight yang didukung; operasi yang tidak didukung gagal secara eksplisit. |
+| `public` | Dinonaktifkan secara default | `PUBLIC_DATA_ENABLED=true`, `PUBLIC_DATA_UPSTREAM_URL` | Hanya proxy ke upstream public data yang kamu kontrol; operasi private/write gagal dengan `403`. |
+| `authorized` | Dinonaktifkan / belum siap production | `AUTHORIZED_PROVIDER_ENABLED=true`, `AUTHORIZED_SESSION_TOKEN`, `AUTHORIZED_INTEGRATION_REVIEWED=true` plus implementasi kode yang sudah direview | Dicadangkan untuk data yang dimiliki atau yang sudah disetujui secara eksplisit setelah review integrasi; operasi live belum diimplementasikan. |
 
-All providers expose the same gateway controller method contract. The contract is documented in `src/providers/instagram/provider.contract.js` and asserted when a provider instance is created. Unsupported live behavior should fail with explicit provider errors rather than falling back to fake production data.
+Semua provider mengekspos method contract gateway controller yang sama. Contract didokumentasikan di `src/providers/instagram/provider.contract.js` dan divalidasi saat instance provider dibuat. Perilaku live yang tidak didukung harus gagal dengan error provider eksplisit, bukan kembali ke data production palsu.
 
-## Capability Matrix
+## Matriks Kemampuan
 
-| Provider | Public/profile reads | Public media/comments | Insights | Writes/private actions | Boundary flags |
+<!-- Tabel ini menunjukkan kemampuan setiap provider berdasarkan jenis operasi. -->
+
+| Provider | Baca publik/profil | Baca media/komentar | Insights | Write/aksi privat | Flag batasan |
 |---|---:|---:|---:|---:|---|
-| `mock` | yes | yes | yes | dry-run only | deterministic local data |
-| `official` | partial | no | partial | no | `officialApiOnly=true` |
-| `public` | upstream-dependent | upstream-dependent | no | no | `requiresCompliantUpstream=true` |
-| `authorized` | no | no | no | no | `requiresReviewedIntegration=true` |
- 
-Capability values are returned by `/capabilities` and by each provider `status()`. They describe the implemented gateway boundary, not every feature Instagram or Meta may provide.
+| `mock` | ya | ya | ya | hanya dry-run | data lokal deterministik |
+| `official` | sebagian | tidak | sebagian | tidak | `officialApiOnly=true` |
+| `public` | tergantung upstream | tergantung upstream | tidak | tidak | `requiresCompliantUpstream=true` |
+| `authorized` | tidak | tidak | tidak | tidak | `requiresReviewedIntegration=true` |
 
-## Production Readiness Matrix
+Nilai kemampuan dikembalikan oleh `/capabilities` dan oleh setiap method `status()` provider. Nilai ini mendeskripsikan batasan gateway yang diimplementasikan, bukan setiap fitur yang mungkin disediakan oleh Instagram atau Meta.
 
-| Area | Status | Production meaning |
+## Matriks Kesiapan Production
+
+<!-- Tabel ini menunjukkan status kesiapan production setiap area. -->
+
+| Area | Status | Arti production |
 |---|---|---|
-| API skeleton | Ready as a deployable gateway skeleton | Express, validation, envelopes, security middleware, probes, Docker, CI, and docs are maintained. |
-| Mock provider | Ready for preview/demo production | Safe deterministic gateway, no live Instagram state, write contracts always dry-run. |
-| Official provider | Partially ready | Ready only for the implemented Meta Graph API account/profile/insights reads and only when Meta env is complete. |
-| Public provider | Conditional | Ready only if the configured upstream is legal, compliant, reliable, and owned/controlled by the deployer. |
-| Authorized provider | Blocked | Not ready for production traffic until a reviewed integration exists in code and unsupported operations are implemented safely. |
+| Skeleton API | Siap sebagai gateway skeleton yang bisa di-deploy | Express, validasi, envelope, middleware keamanan, probe, Docker, CI, dan docs dipelihara. |
+| Provider mock | Siap untuk preview/demo production | Gateway deterministik yang aman, tidak ada state Instagram live, contract write selalu dry-run. |
+| Provider official | Sebagian siap | Siap hanya untuk operasi baca Meta Graph API akun/profil/insight yang sudah diimplementasikan dan hanya ketika env Meta sudah lengkap. |
+| Provider public | Bersyarat | Siap hanya jika upstream yang dikonfigurasi legal, compliant, reliable, dan dimiliki/dikontrol oleh yang deploy. |
+| Provider authorized | Terblokir | Belum siap untuk traffic production sampai integrasi yang sudah direview ada di kode dan operasi yang tidak didukung diimplementasikan secara aman. |
 
 ## Mock
 
-- Default provider.
-- No external network calls.
-- All endpoints return deterministic mock data.
-- Write endpoints return accepted dry-run responses.
-- Best for CI/CD and deployment previews.
+<!-- Penjelasan provider mock. -->
+
+- Provider default.
+- Tidak ada panggilan jaringan eksternal.
+- Semua endpoint mengembalikan data mock deterministik.
+- Endpoint write mengembalikan response dry-run yang diterima.
+- Terbaik untuk CI/CD dan preview deployment.
 
 ## Official
 
-- Boundary for Instagram Graph API / Meta API.
-- Requires `META_ACCESS_TOKEN` and `META_IG_USER_ID`.
-- Requires `META_GRAPH_BASE_URL` and `META_API_VERSION`.
-- Sends the access token as an `Authorization: Bearer` header, not as a query parameter.
-- Validates `META_GRAPH_BASE_URL`, `META_API_VERSION`, and `META_IG_USER_ID` before reporting ready.
-- Handles upstream timeout, non-JSON responses, and Graph API error responses as provider upstream errors.
-- Use only scopes approved for your app and authenticated Business/Creator account.
-- Follow/unfollow automation is not exposed by this safe adapter.
+<!-- Penjelasan provider official. -->
+
+- Batasan untuk Instagram Graph API / Meta API.
+- Memerlukan `META_ACCESS_TOKEN` dan `META_IG_USER_ID`.
+- Memerlukan `META_GRAPH_BASE_URL` dan `META_API_VERSION`.
+- Mengirim access token sebagai header `Authorization: Bearer`, bukan sebagai query parameter.
+- Memvalidasi `META_GRAPH_BASE_URL`, `META_API_VERSION`, dan `META_IG_USER_ID` sebelum melaporkan ready.
+- Menangani timeout upstream, response non-JSON, dan response error Graph API sebagai error upstream provider.
+- Gunakan hanya scope yang disetujui untuk app kamu dan akun Business/Creator yang terautentikasi.
+- Automasi follow/unfollow tidak diekspos oleh adapter aman ini.
 
 ## Public
 
-- Read-only boundary for public data that is allowed by law and platform terms.
-- Requires `PUBLIC_DATA_ENABLED=true` and a valid `PUBLIC_DATA_UPSTREAM_URL`.
-- `PUBLIC_DATA_UPSTREAM_URL` must be an HTTP/HTTPS URL without embedded credentials.
-- Does not bypass login, anti-bot controls, rate limits, or access controls.
-- Write and private operations are disabled with `403`.
+<!-- Penjelasan provider public. -->
+
+- Batasan hanya-baca untuk data publik yang diizinkan oleh hukum dan ketentuan platform.
+- Memerlukan `PUBLIC_DATA_ENABLED=true` dan `PUBLIC_DATA_UPSTREAM_URL` yang valid.
+- `PUBLIC_DATA_UPSTREAM_URL` harus berupa URL HTTP/HTTPS tanpa credential yang tertanam.
+- Tidak melewati login, kontrol anti-bot, rate limit, atau kontrol akses.
+- Operasi write dan private dinonaktifkan dengan `403`.
 
 ## Authorized
 
-- Advanced boundary for owned data or data with explicit permission.
-- Disabled by default via `AUTHORIZED_PROVIDER_ENABLED=false`.
-- Requires `AUTHORIZED_PROVIDER_ENABLED=true` and `AUTHORIZED_SESSION_TOKEN` before the boundary can be selected.
-- Requires `AUTHORIZED_INTEGRATION_REVIEWED=true` and a real reviewed implementation in code before readiness can pass.
-- Does not store raw passwords.
-- Live operations return `501` until you add reviewed consent and secure integration logic.
+<!-- Penjelasan provider authorized. -->
+
+- Batasan lanjutan untuk data yang dimiliki atau data dengan izin eksplisit.
+- Dinonaktifkan secara default melalui `AUTHORIZED_PROVIDER_ENABLED=false`.
+- Memerlukan `AUTHORIZED_PROVIDER_ENABLED=true` dan `AUTHORIZED_SESSION_TOKEN` sebelum batasan ini bisa dipilih.
+- Memerlukan `AUTHORIZED_INTEGRATION_REVIEWED=true` dan implementasi yang sudah direview di kode sebelum readiness bisa lolos.
+- Tidak menyimpan password mentah.
+- Operasi live mengembalikan `501` sampai kamu menambahkan consent yang sudah direview dan logika integrasi yang aman.
+
+## Provider Contract
+
+<!-- Penjelasan contract yang harus diimplementasikan setiap provider. -->
+
+Setiap provider harus mengimplementasikan method berikut:
+
+- `ready()`: memeriksa kesiapan provider dan mengembalikan status.
+- `status()`: mengembalikan informasi status provider termasuk kemampuan.
+- `capabilities()`: mengembalikan batasan operasi yang aman.
+- Semua method operasi baca: `getProfile()`, `getPosts()`, `getFollowers()`, dll.
+- Semua method operasi write: `follow()`, `unfollow()`, `publishMedia()`, `replyComment()`, `sendMessage()`, dll.
+
+Method operasi write pada mode mock selalu mengembalikan response dry-run. Method operasi write pada provider non-mock harus gagal secara eksplisit jika tidak diimplementasikan.
+
+## Catatan Kepatuhan dan Penggunaan yang Bertanggung Jawab
+
+<!-- Catatan penting tentang penggunaan yang sesuai aturan. -->
+
+Project ini **tidak boleh** digunakan untuk:
+
+- Scraping data Instagram.
+- Melewati kontrol anti-bot atau login.
+- Spam atau bulk messaging.
+- Automasi yang melanggar ketentuan platform Instagram/Meta.
+- Mengakses data tanpa izin dari pemiliknya.
+
+Gunakan project ini hanya untuk:
+
+- Integrasi resmi yang disetujui oleh Meta.
+- Data yang kamu miliki atau yang sudah disetujui secara eksplisit.
+- Testing dan development dengan mode mock.
+- Upstream public data yang legal, compliant, dan kamu kontrol.

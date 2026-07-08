@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { assertEnvelope, requestJson, withServer } from "./test-client.js";
+import { queryBoolean } from "../schemas/common.schema.js";
 
 test("invalid username returns standard error envelope", async () => {
     await withServer(async ({ baseUrl }) => {
@@ -69,6 +70,48 @@ test("comment reply with invalid link returns Instagram link validation error", 
         assertEnvelope(body, false);
         assert.equal(body.error.code, "INSTAGRAM_LINK_INVALID");
         assert.match(body.error.message, /instagram\.com/);
+    });
+});
+
+// --- queryBoolean schema tests ---
+
+for (const value of ["true", "1", "yes", "y", "on", "True", "YES", " On "]) {
+    test(`queryBoolean parses "${value}" as true`, () => {
+        assert.equal(queryBoolean.parse(value), true);
+    });
+}
+
+for (const value of ["false", "0", "no", "n", "off", "False", "NO", " Off "]) {
+    test(`queryBoolean parses "${value}" as false`, () => {
+        assert.equal(queryBoolean.parse(value), false);
+    });
+}
+
+test("queryBoolean defaults to false when undefined", () => {
+    assert.equal(queryBoolean.parse(undefined), false);
+});
+
+test("queryBoolean rejects invalid value", () => {
+    assert.throws(() => queryBoolean.parse("invalid"), (err) => err.name === "ZodError");
+});
+
+test("GET /v1/get/posts/users/tenrusl?all=false returns all=false and non-all item count", async () => {
+    await withServer(async ({ baseUrl }) => {
+        const { response, body } = await requestJson(baseUrl, "/v1/get/posts/users/tenrusl?all=false&limit=5");
+        assert.equal(response.status, 200);
+        assertEnvelope(body, true);
+        assert.equal(body.data.page.all, false);
+        assert.ok(body.data.items.length <= 1, "all=false should return default item count, not all items");
+    });
+});
+
+test("GET /v1/get/posts/users/tenrusl?all=true returns all=true and more items", async () => {
+    await withServer(async ({ baseUrl }) => {
+        const { response, body } = await requestJson(baseUrl, "/v1/get/posts/users/tenrusl?all=true&limit=5");
+        assert.equal(response.status, 200);
+        assertEnvelope(body, true);
+        assert.equal(body.data.page.all, true);
+        assert.ok(body.data.items.length > 1, "all=true should return multiple items");
     });
 });
 
