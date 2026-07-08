@@ -1,6 +1,6 @@
 {
     "name": "tenrusl-instagram-api-nodejs",
-    "version": "4.0.0",
+    "version": "1.0.0",
     "description": "Production-ready Express API gateway skeleton and mock Instagram contract with explicit provider readiness boundaries, health probes, metrics, tests, and deployment templates.",
     "type": "module",
     "main": "src/server.js",
